@@ -1,0 +1,3 @@
+[submodule "lib/svgen"]
+	path = lib/svgen
+	url = git://github.com/shinout/svgen.git
