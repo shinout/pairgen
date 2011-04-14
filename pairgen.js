@@ -23,15 +23,26 @@ function pairgen(path, op) {
   var depth = op.depth || 40;
   var parallel = op.parallel || 1;
   var para_id = op.para_id || 1;
+  var save_dir = op.save_dir || '.';
+  var left_path = op.left_path || getWritePath({lr: 'left'});
+  var right_path = op.right_path || getWritePath({lr: 'right'});
+
   var max = getMaxBP(path, prelen, linelen);
 
   var times = Math.floor(max * depth / (width + 2 * readlen) / parallel);
-  var fd = fs.openSync(path, 'r');
   var qual = (function(){ var a = ''; for(var i=0; i<readlen; i++){a+='I';} return a;})();
 
   function getSeqId(ob) {
-    return  '@SVGEN_PAIRGEN:'+new Date().getTime()+':'+ob.i+':'+depth+':'+ para_id + '/'+ parallel + ':' + chrom +':'+ob.pos + ':'+ob.wd+':'+ ob.ori;
+    return  '@SVGEN_PAIRGEN:'+width+':'+dev+':'+new Date().getTime()+':'+(ob.i+1)+'/'+times+':'+depth+':'+ para_id + '/'+ parallel + ':' + chrom +':'+ob.pos +'/'+ob.pos2+':'+ob.wd;
   }
+
+  function getWritePath(op) {
+    return save_dir + '/' + require('path').basename(path) + '_' + para_id + '.' + ((op.lr=='left')?1:2) + '.fastq';
+  }
+
+  var fd = fs.openSync(path, 'r');
+  var left_file = fs.createWriteStream(left_path, {bufferSize: 40960, encoding: 'utf-8', flags: 'w'});
+  var right_file = fs.createWriteStream(right_path, {bufferSize: 40960, encoding: 'utf-8', flags: 'w'});
 
   for (var i=0; i<times; i++) {
     var wd = Math.floor(random(width, dev) + 0.5);
@@ -40,15 +51,15 @@ function pairgen(path, op) {
     var lstartIdx = pos2index(startpos, prelen, linelen)
     var lendIdx = pos2index(startpos+readlen, prelen, linelen)
 
-    var lseq_id = getSeqId({i:i, pos: startpos, wd: wd, ori: 'L+'});
-    console.log(lseq_id);
+    var seq_id = getSeqId({i:i, pos: startpos, pos2: startpos+readlen+wd, wd: wd});
     var leftread = fs.readSync(fd, lendIdx - lstartIdx, lstartIdx)[0].replace(/\n/g, '');
 
     var rstartIdx = pos2index(startpos+readlen+wd, prelen, linelen)
     var rendIdx = pos2index(startpos+readlen*2+wd, prelen, linelen)
     var rightread = SVConst.complStrand(fs.readSync(fd, rendIdx - rstartIdx, rstartIdx)[0].replace(/\n/g, '')).split('').reverse().join('');
-    var rseq_id = getSeqId({i:i, pos: startpos + readlen + wd, wd: wd, ori: 'R-'});
-    console.log(rseq_id);
+
+    left_file.write(seq_id+'\n'+leftread+'\n'+'+\n'+qual+'\n');
+    right_file.write(seq_id+'\n'+rightread+'\n'+'+\n'+qual+'\n');
   }
 
   fs.closeSync(fd);
