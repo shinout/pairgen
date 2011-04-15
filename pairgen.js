@@ -42,8 +42,8 @@ function pairgen(path, op) {
   }
 
   var fd = fs.openSync(path, 'r');
-  var left_file = fs.createWriteStream(left_path, {bufferSize: 40960, encoding: 'utf-8', flags: 'w'});
-  var right_file = fs.createWriteStream(right_path, {bufferSize: 40960, encoding: 'utf-8', flags: 'w'});
+  var left_file = fs.createWriteStream(left_path, {mode: 0644, encoding: 'utf-8', flags: 'w'});
+  var right_file = fs.createWriteStream(right_path, {mode: 0644, encoding: 'utf-8', flags: 'w'});
 
   for (var i=0; i<times; i++) {
     var wd = Math.floor(random(width, dev) + 0.5);
