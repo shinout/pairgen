@@ -45,24 +45,47 @@ function pairgen(path, op) {
   var left_file = fs.createWriteStream(left_path, {bufferSize: 40960, encoding: 'utf-8', flags: 'w'});
   var right_file = fs.createWriteStream(right_path, {bufferSize: 40960, encoding: 'utf-8', flags: 'w'});
 
-  for (var i=0; i<times; i++) {
-    var wd = Math.floor(random(width, dev) + 0.5);
-    var range = max - wd - readlen * 2;
-    var startpos = Math.floor(Math.random() * range + 0.5);
-    var lstartIdx = pos2index(startpos, prelen, linelen)
-    var lendIdx = pos2index(startpos+readlen, prelen, linelen)
+  var flags = {l: true, r: true};
 
-    var seq_id = getSeqId({i:i, pos: startpos, pos2: startpos+readlen+wd, wd: wd});
-    var leftread = fs.readSync(fd, lendIdx - lstartIdx, lstartIdx)[0].replace(/\n/g, '');
+  left_file.on('drain', function() { 
+    flags.l = true;
+    makeContig(); 
+  });
 
-    var rstartIdx = pos2index(startpos+readlen+wd, prelen, linelen)
-    var rendIdx = pos2index(startpos+readlen*2+wd, prelen, linelen)
-    var rightread = SVConst.complStrand(fs.readSync(fd, rendIdx - rstartIdx, rstartIdx)[0].replace(/\n/g, '')).split('').reverse().join('');
+  right_file.on('drain', function() { 
+    flags.r = true;
+    makeContig(); 
+  });
 
-    left_file.write(seq_id+'\n'+leftread+'\n'+'+\n'+qual+'\n');
-    right_file.write(seq_id+'\n'+rightread+'\n'+'+\n'+qual+'\n');
+  var i = 0;
+  makeContig();
+
+  function makeContig() {
+    while ( i < times) {
+      if (!flags.l || !flags.r) { return; }
+
+      var wd = Math.floor(random(width, dev) + 0.5);
+      var range = max - wd - readlen * 2;
+      var startpos = Math.floor(Math.random() * range + 0.5);
+      var lstartIdx = pos2index(startpos, prelen, linelen)
+      var lendIdx = pos2index(startpos+readlen, prelen, linelen)
+
+      var seq_id = getSeqId({i:i, pos: startpos, pos2: startpos+readlen+wd, wd: wd});
+      var leftread = fs.readSync(fd, lendIdx - lstartIdx, lstartIdx)[0].replace(/\n/g, '');
+
+      var rstartIdx = pos2index(startpos+readlen+wd, prelen, linelen)
+      var rendIdx = pos2index(startpos+readlen*2+wd, prelen, linelen)
+      var rightread = SVConst.complStrand(fs.readSync(fd, rendIdx - rstartIdx, rstartIdx)[0].replace(/\n/g, '')).split('').reverse().join('');
+
+      flags.l = left_file.write(seq_id+'\n'+leftread+'\n'+'+\n'+qual+'\n');
+      flags.r = right_file.write(seq_id+'\n'+rightread+'\n'+'+\n'+qual+'\n');
+      i++;
+    }
+
+    left_file.end();
+    right_file.end();
+    fs.closeSync(fd);
   }
-
-  fs.closeSync(fd);
 }
+
 module.exports = pairgen;
