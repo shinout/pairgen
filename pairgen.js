@@ -1,18 +1,20 @@
 var SVConst = require('./lib/svgen/SVConst');
 var pos2index = SVConst.pos2index;
 var idx2pos = SVConst.idx2pos;
-var random = require('./lib/normal_random');
+var norm_rand = require('./lib/normal_random');
+var XORShift = require('./lib/xorshift');
 var fs = require('fs');
 
 
 function getMaxBP(path, prelen, linelen) {
-  if (!require('path').existsSync(path)) {
-    return false;
-  }
   return idx2pos(fs.statSync(path).size -1 -1, prelen, linelen);// -1: char to idx, -1: remove \n
 }
 
 function pairgen(path, op) {
+  if (!require('path').existsSync(path)) {
+    process.stderr.write(path + ': No such file.');
+    return false;
+  }
   op = op || {};
   var chrom = op.chrom || 'chr?';
   var name = require('path').basename(path);
@@ -20,13 +22,15 @@ function pairgen(path, op) {
   var linelen = op.linelen || 50;
   var width = op.width || 200;
   var dev = op.dev || 50;
-  var readlen = op.readlen || 100;
+  var readlen = op.readlen || 108;
   var depth = op.depth || 40;
   var parallel = op.parallel || 1;
   var para_id = op.para_id || 1;
   var save_dir = op.save_dir || '.';
   var left_path = op.left_path || getWritePath({lr: 'left'});
   var right_path = op.right_path || getWritePath({lr: 'right'});
+
+  var random = new XORShift(parallel, true);
 
   var max = getMaxBP(path, prelen, linelen);
 
@@ -60,13 +64,15 @@ function pairgen(path, op) {
   var i = 0;
   makeContig();
 
+
   function makeContig() {
     while ( i < times) {
       if (!flags.l || !flags.r) { return; }
 
-      var wd = Math.floor(random(width, dev) + 0.5);
+      
+      var wd = Math.floor(norm_rand(width, dev, random) + 0.5);
       var range = max - wd - readlen * 2;
-      var startpos = Math.floor(Math.random() * range + 0.5);
+      var startpos = Math.floor(random() * range + 0.5);
       var lstartIdx = pos2index(startpos, prelen, linelen)
       var lendIdx = pos2index(startpos+readlen, prelen, linelen)
 
