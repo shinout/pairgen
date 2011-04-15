@@ -26,9 +26,12 @@ else
   seq="jot"
 fi
 
+
 for item in $($seq $num)
 do
-  echo "$node $thisdir/pairgen_exe.js $fasta $save_dir $item $num &"
-  $node $thisdir/pairgen_exe.js $fasta $save_dir $item $num &
+  file1=$($node $thisdir/pairgen_filename.js $fasta $save_dir $item $num left)
+  file2=$($node $thisdir/pairgen_filename.js $fasta $save_dir $item $num right)
+  echo "$node $thisdir/pairgen_exe.js $fasta $save_dir $item $num 1>$file1 2>$file2 &"
+  $node $thisdir/pairgen_exe.js $fasta $save_dir $item $num 1>$file1 2>$file2 &
 done
 

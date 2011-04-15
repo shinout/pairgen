@@ -41,9 +41,11 @@ function pairgen(path, op) {
     return save_dir + '/' + name + '_' + para_id + '.' + ((op.lr=='left')?1:2) + '.fastq';
   }
 
+  if (op.mode == 'filename') {
+    return require('path').resolve(getWritePath({lr: op.lr}));
+  }
+
   var fd = fs.openSync(path, 'r');
-  var left_file = fs.createWriteStream(left_path, {bufferSize: 40960, encoding: 'utf-8', flags: 'w'});
-  var right_file = fs.createWriteStream(right_path, {bufferSize: 40960, encoding: 'utf-8', flags: 'w'});
 
   for (var i=0; i<times; i++) {
     var wd = Math.floor(random(width, dev) + 0.5);
@@ -59,10 +61,16 @@ function pairgen(path, op) {
     var rendIdx = pos2index(startpos+readlen*2+wd, prelen, linelen)
     var rightread = SVConst.complStrand(fs.readSync(fd, rendIdx - rstartIdx, rstartIdx)[0].replace(/\n/g, '')).split('').reverse().join('');
 
-    left_file.write(seq_id+'\n'+leftread+'\n'+'+\n'+qual+'\n');
-    right_file.write(seq_id+'\n'+rightread+'\n'+'+\n'+qual+'\n');
+    process.stdout.write(seq_id+'\n'+leftread+'\n'+'+\n'+qual+'\n');
+    process.stderr.write(seq_id+'\n'+rightread+'\n'+'+\n'+qual+'\n');
   }
 
   fs.closeSync(fd);
+}
+
+pairgen.getFileName = function(path, op) {
+  op = op || {};
+  op.mode = 'filename';
+  return pairgen(path, op);
 }
 module.exports = pairgen;
