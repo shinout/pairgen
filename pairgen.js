@@ -15,6 +15,7 @@ function getMaxBP(path, prelen, linelen) {
 function pairgen(path, op) {
   op = op || {};
   var chrom = op.chrom || 'chr?';
+  var name = require('path').basename(path);
   var prelen = op.prelen || 7;
   var linelen = op.linelen || 50;
   var width = op.width || 200;
@@ -33,11 +34,11 @@ function pairgen(path, op) {
   var qual = (function(){ var a = ''; for(var i=0; i<readlen; i++){a+='I';} return a;})();
 
   function getSeqId(ob) {
-    return  '@SVGEN_PAIRGEN:'+width+':'+dev+':'+new Date().getTime()+':'+(ob.i+1)+'/'+times+':'+depth+':'+ para_id + '/'+ parallel + ':' + chrom +':'+ob.pos +'/'+ob.pos2+':'+ob.wd;
+    return  '@SVGEN_PAIRGEN:'+name+':'+width+':'+dev+':'+new Date().getTime()+':'+(ob.i+1)+'_'+times+':'+depth+':'+ para_id + '_'+ parallel + ':' + chrom +':'+ob.pos +'_'+ob.pos2+':'+ob.wd;
   }
 
   function getWritePath(op) {
-    return save_dir + '/' + require('path').basename(path) + '_' + para_id + '.' + ((op.lr=='left')?1:2) + '.fastq';
+    return save_dir + '/' + name + '_' + para_id + '.' + ((op.lr=='left')?1:2) + '.fastq';
   }
 
   var fd = fs.openSync(path, 'r');
