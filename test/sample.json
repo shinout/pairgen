@@ -1,0 +1,18 @@
+/**
+ * input config file.
+ * if set to null, then uses default value.
+ *
+ **/
+
+{ file      : __dirname + '/sample.fasta' // path of FASTA file.
+, name      : 'test' // name of the sequence. Any string is allowed. default = basename(file)
+, seq_id    : 'sample1'// id of the sequence determined by FASTA.
+, width     : 100        // mean pair distance ( width + readlen * 2 == total flagment length ) default = 200
+, readlen   : 60        // length of the read. defaul t= 108
+, dev       : 30         // standard deviation of the total fragment length. default = 50
+, depth     : 80         // physical read depth. default = 40
+, save_dir  : __dirname + '/result' // directory to save result. default = '.'
+, leftname  : null        // filename of the left result name.
+, rightname : null        // filename of the right result name.
+, parallel  : 10       // how many processes to run. default = 1
+}

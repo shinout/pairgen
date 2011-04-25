@@ -60,3 +60,18 @@ test('ok', Math.abs(normmean - 100) < 5, 'mean of (pseudo)normal distribution is
 test('ok', Math.abs(Math.sqrt(normdisp) - 50) < 5, 'dispersion of (pseudo)uniform distribution is invalid');
 
 test('result', 'random test');
+
+
+/* pairgen test */
+
+var result = pairgen.run({ 
+  file      : __dirname + '/sample.fasta'
+  , seq_id    : 'sample1'
+  , name      : 'test'
+  , dev       : 30
+  , depth     : 80
+  , save_dir  : __dirname + '/result'
+  , leftname  : null
+  , rightname : null
+  , parallel  : 10
+});
