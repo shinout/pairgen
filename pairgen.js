@@ -6,10 +6,11 @@ var norm_rand   = require('./lib/normal_random');
 var XORShift    = require('./lib/xorshift');
 var fs          = require('fs');
 var pth         = require('path');
-var spawn    = require('child_process').spawn;
-var exec     = require('child_process').exec;
+var spawn       = require('child_process').spawn;
+var exec        = require('child_process').exec;
 
 function main() {
+  var contents = '';
   var rstream;
 
   // stdin detection
@@ -18,11 +19,19 @@ function main() {
     rstream = process.stdin;
   }
 
+  // arguments
+  else if (process.argv[2] == '-a') {
+    contents = process.argv[3];
+    getConfig();
+    return;
+  }
+
   // read from file
   else {
     var config_file = process.argv[2];
     if (!config_file) {
       process.stderr.write('usage: ' +  process.argv[0] + ' ' + process.argv[1] + ' <config file>\n');
+      process.stderr.write('usage: cat <config file> | ' +  process.argv[0] + ' ' + process.argv[1] + ' -i\n');
       return false;
     }
 
@@ -34,16 +43,21 @@ function main() {
     rstream = fs.createReadStream(config_file);
   }
 
-  var contents = '';
 
   rstream.on('data', function(data) {
     contents += data.toString();
   });
 
-  rstream.on('end', function() {
+  rstream.on('error', function(e) {
+    process.stderr.write(e);
+  });
+
+  rstream.on('end', getConfig);
+
+  function getConfig() {
     try {
       var config;
-      ( function() {
+      (function() {
         var __filename = config_file || __filename;
         var __dirname  = pth.dirname(__filename);
         config = eval(
@@ -58,13 +72,28 @@ function main() {
       return false;
     }
     runWithConfig(config);
-  });
+  }
 }
 
 
-function runWithConfig(config) {
+function runWithConfig(config, nextfunc) {
+
+  if (!pth.existsSync(config.file)) {
+    if (!config.file) {
+      process.stderr.write('Specify a fasta file with "file" option.\n');
+    }
+    else {
+      process.stderr.write(config.file + ': No such file.\n');
+    }
+    return false;
+  }
+
+  nextfunc = (typeof nextfunc == "function") ? nextfunc : function(files) {
+    //console.log(files);
+  };
   config.parallel = config.parallel || 1;
   config.spawn    = (config.spawn != null) ? config.spawn : ( (config.parallel == 1) ? false : true); // spawn child process or not
+  
 
   if (!config.spawn) {
     return pairgen(config.file, config);
@@ -73,63 +102,81 @@ function runWithConfig(config) {
   /* multi process spawning */
   else {
     var files = {left: [], right: []}; // for concatinate
-    exec('which node', function(err, o, e) {
-      /* get node path */
-      var nodePath = (o.charAt(o.length -1) == '\n') ? o.slice(0, -1) : o;
-      var endcount = 0;
+    var errflag = false;
 
-      // TODO: make childConfig with deep clone method.
-      var childConfig = config;
-      childConfig.spawn   = false;
-      var script = __filename;
+    /* get node path */
+    var nodePath = process.argv[0];
+    var endcount = 0;
 
-      var nodes = [];
-      /* spawn multi process */
-      for (var i=0; i < config.parallel; i++) {
-        childConfig.para_id = (Number(i)+1); 
-        nodes[i] = spawn(nodePath, [script, '-i']);
+    // TODO: make childConfig with deep clone method.
+    var childConfig = config;
+    childConfig.spawn   = false;
+    var script = __filename;
+    var nodes = [];
+    /* spawn multi process */
+    for (var i=0; i < config.parallel; i++) {
+      childConfig.para_id = (Number(i)+1); 
+      nodes[i] = spawn(nodePath, [script, '-a', JSON.stringify(childConfig)]);
 
-        var node = nodes[i];
+      var node = nodes[i];
 
-        node.stdin.write(JSON.stringify(childConfig));
-        node.stdin.end();
+      //node.stdin.write(JSON.stringify(childConfig));
+      //node.stdin.end();
 
-        node.stdin.on('error', function(e) {
-          // catch an error happening in node.stdin.end()
-          // console.log(e);
-        });
+      node.stdin.on('error', function(e) {
+        // catch an error happening in node.stdin.end()
+        // console.log(e);
+      });
 
-        node.stderr.on('data', function(d) {
-          process.stderr.write(d.toString());
-        });
+      node.stderr.on('data', function(d) {
+        errflag = true;
+        console.log(d.toString());
+      });
 
-        node.stdout.on('data', function(d) {
+      node.stdout.on('data', function(d) {
+        try {
           var arr = JSON.parse(d.toString());
-          if (arr instanceof Array) {
-            files.left.push(arr[0]);
-            files.right.push(arr[1]);
-          }
-          else {
-            console.log(arr);
-            console.log("あれれー");
-          }
-        });
+          files.left.push(arr[0]);
+          files.right.push(arr[1]);
+        } catch (e) {
+          console.log(d.toString());
+        }
+      });
 
-        node.on('exit', function(code, signal) {
-          endcount++;
-          if (endcount == config.parallel) {
-            concat('left');
-            concat('right');
+      node.on('exit', function(code, signal) {
+        endcount++;
+        if (endcount == config.parallel) {
+          if (errflag) {
+            process.exit();
           }
-        });
-      }
-    });
-    function concat(lr) {
-      var filename = (config.save_dir || '.') + '/' + (config.name || pth.basename(config.file)) 
-      + '_' + ((lr == 'left') ? '1':'2') + '.fastq';
-      var cat = spawn('cat', files[lr]);
-      cat.stdout.pipe(fs.createWriteStream(filename));
+          var endflag = 0;
+          var catl = concat('left');
+          var catr = concat('right');
+          var onend = function() {
+            endflag++;
+            if (endflag == 2) {
+              // remove temporal data
+              if (config.remove !== false) {
+                spawn('rm', files.left);
+                spawn('rm', files.right);
+              }
+
+              nextfunc({left: catl.filename, right: catr.filename});
+            }
+          };
+          catl.stdout.on('end', onend);
+          catr.stdout.on('end', onend);
+        }
+      });
     }
+  }
+  function concat(lr) {
+    var filename = (config.save_dir || '.') + '/' + (config.name || pth.basename(config.file)) 
+    + '_' + ((lr == 'left') ? '1':'2') + '.fastq';
+    var cat = spawn('cat', files[lr]);
+    cat.stdout.pipe(fs.createWriteStream(filename));
+    cat.filename = filename;
+    return cat;
   }
 }
 
@@ -232,7 +279,9 @@ function pairgen(path, op) {
     left_file.end();
     right_file.end();
 
-    process.stdout.write(JSON.stringify([left_path, right_path]));
+    if (parallel > 1) {
+      process.stdout.write(JSON.stringify([left_path, right_path]));
+    }
   }
   return true;
 }

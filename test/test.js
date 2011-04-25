@@ -68,10 +68,13 @@ var result = pairgen.run({
   file      : __dirname + '/sample.fasta'
   , seq_id    : 'sample1'
   , name      : 'test'
+  , remove    : true
   , dev       : 30
   , depth     : 80
   , save_dir  : __dirname + '/result'
   , leftname  : null
   , rightname : null
   , parallel  : 10
+}, function(files) {
+  console.log(files);
 });
