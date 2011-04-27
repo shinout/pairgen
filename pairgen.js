@@ -217,16 +217,22 @@ function pairgen(path, op) {
 
   /* check required */
   if (!seq_id) {
-    process.stderr.write('seq id is empty.\n');
-    return false;
+    try {
+      seq_id = Object.keys(fastas.result)[0];
+    }
+    catch (e) {
+      process.stderr.write('given fasta file doesn\'t seems to be FASTA format.\n');
+      return false;
+    }
   }
+
   if (!fastas.result[seq_id]) {
     process.stderr.write(seq_id + ': No such seq id in .'+ path +'\n');
     return false;
   }
   var fasta = fastas.result[seq_id];
   var max   = fasta.getEndPos();
-  var times = Math.floor(max * depth / (width + 2 * readlen) / parallel);
+  var times = Math.floor(max * depth / (2 * readlen) / parallel);
 
   /* files to write */
   var left_file  = fs.createWriteStream(left_path,  {bufferSize: 40960, encoding: 'utf-8', flags: 'w'});
