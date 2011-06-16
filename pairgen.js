@@ -1,102 +1,68 @@
-var dna         = require('./lib/dna');
-var FASTAReader = require('./lib/FASTAReader/FASTAReader');
-var pos2index   = FASTAReader.pos2index;
-var idx2pos     = FASTAReader.idx2pos;
-var norm_rand   = require('./lib/normal_random');
-var XORShift    = require('./lib/xorshift');
-var fs          = require('fs');
-var pth         = require('path');
-var spawn       = require('child_process').spawn;
-var exec        = require('child_process').exec;
+const dna         = require('./lib/dna');
+const FASTAReader = require('./lib/FASTAReader/FASTAReader');
+const ArgParser   = require('argparser');
+const pos2index   = FASTAReader.pos2index;
+const idx2pos     = FASTAReader.idx2pos;
+const norm_rand   = require('./lib/normal_random');
+const XORShift    = require('./lib/xorshift');
+const fs          = require('fs');
+const pth         = require('path');
+const spawn       = require('child_process').spawn;
+const exec        = require('child_process').exec;
 
-function main() {
-  var contents = '';
-  var rstream;
-
-  // stdin detection
-  if (process.argv[2] == '-i') {
-    process.stdin.resume();
-    rstream = process.stdin;
-  }
-
-  // arguments
-  else if (process.argv[2] == '-a') {
-    contents = process.argv[3];
-    getConfig();
-    return;
-  }
-
-  // read from file
-  else {
-    var config_file = process.argv[2];
-    if (!config_file) {
-      process.stderr.write('usage: ' +  process.argv[0] + ' ' + process.argv[1] + ' <config file>\n');
-      process.stderr.write('usage: cat <config file> | ' +  process.argv[0] + ' ' + process.argv[1] + ' -i\n');
-      return false;
-    }
-
-    if (!pth.existsSync(config_file)) {
-      process.stderr.write(config_file + ': No such file (config file).\n');
-      return false;
-    }
-
-    rstream = fs.createReadStream(config_file);
-  }
-
-
-  rstream.on('data', function(data) {
-    contents += data.toString();
-  });
-
-  rstream.on('error', function(e) {
-    process.stderr.write(e);
-  });
-
-  rstream.on('end', getConfig);
-
-  function getConfig() {
-    try {
-      var config;
-      (function() {
-        var __filename = config_file || __filename;
-        var __dirname  = pth.dirname(__filename);
-        config = eval(
-          '('+ contents +')'
-        );
-      })();
-
-    }
-    catch (e) {
-      process.stderr.write(e);
-      process.stderr.write('\nError. cannot read config file: ' + config_file + '\n');
-      return false;
-    }
-    runWithConfig(config);
-  }
+function parseIntF(v) {
+  var ret = parseInt(v);
+  return (isNaN(ret)) ? 0 : ret;
 }
 
+function main() {
+  const p = new ArgParser().addOptions(['spawn']).addValueOptions([
+    'name','seq_id','width','readlen',
+    'dev','depth','save_dir','parallel','para_id', 'exename']
+  ).parse();
 
-function runWithConfig(config, nextfunc) {
+  function showUsage() {
+    const cmd = p.getOptions('exename') || (process.argv[0] + ' ' + require('path').basename(process.argv[1]));
+    console.error('[usage]');
+    console.error('\t' + cmd + ' <fasta file>');
+    console.error('[options]');
+    console.error('\t' + '--name\tname of the sequence. default = basename(file)');
+    console.error('\t' + '--seq_id\tid of the sequence determined by FASTA. If null, then uses the first sequence id.');
+    console.error('\t' + '--width\tmean pair distance ( width + readlen * 2 == total flagment length ) default = 200');
+    console.error('\t' + '--readlen\tlength of the read. default = 108');
+    console.error('\t' + '--dev\tstandard deviation of the total fragment length. default = 50');
+    console.error('\t' + '--depth\tphysical read depth. default = 40');
+    console.error('\t' + '--save_dir\tdirectory to save result. default = "."');
+    console.error('\t' + '--parallel\tthe number of processes to run. default: 1');
+  }
 
-  if (!pth.existsSync(config.file)) {
-    if (!config.file) {
-      process.stderr.write('Specify a fasta file with "file" option.\n');
-    }
-    else {
-      process.stderr.write(config.file + ': No such file.\n');
-    }
+  if (!p.getArgs(0)) {
+    showUsage();
     return false;
   }
 
-  nextfunc = (typeof nextfunc == "function") ? nextfunc : function(files) {
-    //console.log(files);
+  if (!pth.existsSync(p.getArgs(0))) {
+    process.stderr.write(p.getArgs(0) + ': No such file (fasta file).\n');
+    showUsage();
+    return false;
+  }
+
+  const fastafile = p.getArgs(0);
+  const config = {
+    name     : p.getOptions('name') || pth.basename(fastafile),
+    seq_id   : p.getOptions('seq_id') || null,
+    width    : parseIntF(p.getOptions('width')) || 200,
+    readlen  : parseIntF(p.getOptions('readlen')) || 108,
+    dev      : parseIntF(p.getOptions('dev')) || 50,
+    depth    : parseIntF(p.getOptions('depth')) || 40,
+    save_dir : p.getOptions('save_dir') || '.',
+    parallel : parseIntF(p.getOptions('parallel')) || 1,
+    para_id  : parseIntF(p.getOptions('para_id')) || 1
   };
-  config.parallel = config.parallel || 1;
-  config.spawn    = (config.spawn != null) ? config.spawn : ( (config.parallel == 1) ? false : true); // spawn child process or not
-  
+  config.spawn = (p.getOptions('spawn')) ? parseIntF(p.getOptions('spawn')) : ( (config.parallel == 1) ? 0 : 1);
 
   if (!config.spawn) {
-    return pairgen(config.file, config);
+    return pairgen(fastafile, config);
   }
 
   /* multi process spawning */
@@ -110,18 +76,15 @@ function runWithConfig(config, nextfunc) {
 
     // TODO: make childConfig with deep clone method.
     var childConfig = config;
-    childConfig.spawn   = false;
+    childConfig.spawn = 0;
     var script = __filename;
     var nodes = [];
     /* spawn multi process */
     for (var i=0; i < config.parallel; i++) {
-      childConfig.para_id = (Number(i)+1); 
-      nodes[i] = spawn(nodePath, [script, '-a', JSON.stringify(childConfig)]);
-
+      childConfig.para_id = (Number(i)+1);
+      // console.error([script, fastafile].concat(ArgParser.getOptionString(childConfig).split(' ').filter(function(v){ return (v!='')})).join(' '));
+      nodes[i] = spawn(nodePath, [script, fastafile].concat(ArgParser.getOptionString(childConfig).split(' ').filter(function(v){ return (v!='')})));
       var node = nodes[i];
-
-      //node.stdin.write(JSON.stringify(childConfig));
-      //node.stdin.end();
 
       node.stdin.on('error', function(e) {
         // catch an error happening in node.stdin.end()
@@ -147,6 +110,7 @@ function runWithConfig(config, nextfunc) {
         endcount++;
         if (endcount == config.parallel) {
           if (errflag) {
+            console.error("error...");
             process.exit();
           }
           var endflag = 0;
@@ -160,8 +124,6 @@ function runWithConfig(config, nextfunc) {
                 spawn('rm', files.left);
                 spawn('rm', files.right);
               }
-
-              nextfunc({left: catl.filename, right: catr.filename});
             }
           };
           catl.stdout.on('end', onend);
@@ -171,8 +133,7 @@ function runWithConfig(config, nextfunc) {
     }
   }
   function concat(lr) {
-    var filename = (config.save_dir || '.') + '/' + (config.name || pth.basename(config.file)) 
-    + '_' + ((lr == 'left') ? '1':'2') + '.fastq';
+    var filename = config.save_dir + '/' + config.name + '_' + ((lr == 'left') ? '1':'2') + '.fastq';
     var cat = spawn('cat', files[lr]);
     cat.stdout.pipe(fs.createWriteStream(filename));
     cat.filename = filename;
@@ -186,6 +147,7 @@ function pairgen(path, op) {
     process.stderr.write(path + ': No such file (at pairgen() ).\n');
     return false;
   }
+  //console.error(op);
 
   /* configuration */
   op = op || {};
@@ -227,7 +189,7 @@ function pairgen(path, op) {
   }
 
   if (!fastas.result[seq_id]) {
-    process.stderr.write(seq_id + ': No such seq id in .'+ path +'\n');
+    process.stderr.write(seq_id + ': No such seq id in '+ path +'\n');
     return false;
   }
   var fasta = fastas.result[seq_id];
@@ -291,9 +253,6 @@ function pairgen(path, op) {
   }
   return true;
 }
-
-
-pairgen.run  = runWithConfig;
 
 module.exports = pairgen;
 
