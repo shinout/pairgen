@@ -1,3 +1,6 @@
 [submodule "lib/FASTAReader"]
 	path = lib/FASTAReader
 	url = git://github.com/shinout/FASTAReader.git
+[submodule "lib/node-webworker"]
+	path = lib/node-webworker
+	url = github:shinout/node-webworker.git
