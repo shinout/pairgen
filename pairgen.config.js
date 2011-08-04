@@ -100,6 +100,11 @@ PairgenConfig = (function() {
       set : function(v) {
         /* pair identifier */
         var left_id, right_id;
+        if (v instanceof Array && v.length == 2) {
+          _(this).pair_id = v;
+          return;
+        }
+
         switch (v) {
           case 'n':
           default: 

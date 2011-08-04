@@ -90,7 +90,6 @@ Pairgen.prototype.run = function() {
 	const left_id  = this.config.pair_id[0];
 	const right_id = this.config.pair_id[1];
 
-
   if (this.running) return;
   this.running = true;
 	while (this.i < this.times) {
