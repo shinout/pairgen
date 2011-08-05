@@ -18,7 +18,7 @@ function parseIntF(v) {
 function main() {
   const p = new ArgParser().addOptions(['spawn']).addValueOptions([
     'name','seq_id','width','readlen',
-    'dev','depth','save_dir','parallel','para_id', 'exename']
+    'dev','depth','save_dir','parallel','para_id', 'pair_id', 'exename']
   ).parse();
 
   function showUsage() {
@@ -34,6 +34,7 @@ function main() {
     console.error('\t' + '--depth\tphysical read depth. default = 40');
     console.error('\t' + '--save_dir\tdirectory to save result. default = "."');
     console.error('\t' + '--parallel\tthe number of processes to run. default: 1');
+    console.error('\t' + '--pair_id <id_type>\tpair id type, put pair information explicitly. id_type is one of A, 1, F, F3.');
   }
 
   if (!p.getArgs(0)) {
@@ -57,9 +58,43 @@ function main() {
     depth    : parseIntF(p.getOptions('depth')) || 40,
     save_dir : p.getOptions('save_dir') || '.',
     parallel : parseIntF(p.getOptions('parallel')) || 1,
-    para_id  : parseIntF(p.getOptions('para_id')) || 1
+    para_id  : parseIntF(p.getOptions('para_id')) || 1,
+    pair_id  : p.getOptions('pair_id') || 'n'
   };
   config.spawn = (p.getOptions('spawn')) ? parseIntF(p.getOptions('spawn')) : ( (config.parallel == 1) ? 0 : 1);
+  /* pair identifier */
+  var left_id, right_id;
+  switch (config.pair_id) {
+    case 'n':
+    default: 
+      left_id  = '';
+      right_id = '';
+      break;
+    case 'A':
+    case 'B':
+      left_id  = '_A';
+      right_id = '_B';
+      break;
+    case '1':
+    case '2':
+    case  1 :
+    case  2 :
+      left_id  = '_1';
+      right_id = '_2';
+      break;
+    case 'F':
+    case 'R':
+      left_id  = '_F';
+      right_id = '_R';
+      break;
+    case 'F3':
+    case 'R3':
+      left_id  = '_F3';
+      right_id = '_R3';
+      break;
+  }
+  config.left_id  = left_id;
+  config.right_id = right_id;
 
   if (!config.spawn) {
     return pairgen(fastafile, config);
@@ -162,7 +197,9 @@ function pairgen(path, op) {
   var save_dir      = op.save_dir      || '.';
   var left_path     = op.left_path     || getWritePath({lr: 'left'});
   var right_path    = op.right_path    || getWritePath({lr: 'right'});
-  var getFlagmentId = op.getFlagmentId || function(ob) {
+  var left_id       = op.left_id || '';
+  var right_id      = op.right_id|| '';
+  var getFragmentId = op.getFragmentId || function(ob) {
     return  '@SVGEN_PAIRGEN:' + name + ':' + width + ':' + dev + ':' + new Date().getTime() +
             ':'+(ob.i+1)+'_'+times+':'+depth+':'+ para_id + '_'+ parallel + 
             ':' + seq_id +':'+ob.pos +'_'+ob.pos2+':'+ob.distance;
@@ -228,7 +265,7 @@ function pairgen(path, op) {
       var range     = max - distance - readlen * 2; // limit position equals max - distance - readlen * 2
       var startpos  = 1 + Math.floor(random() * (range-1) + 0.5);
       var startpos2 = startpos + readlen + distance;
-      var flg_id    = getFlagmentId({
+      var flg_id    = getFragmentId({
         i        : i,
         pos      : startpos,
         pos2     : startpos2,
@@ -238,8 +275,8 @@ function pairgen(path, op) {
       var leftread = fasta.fetch(startpos, readlen);
       var rightread = dna.complStrand(fasta.fetch(startpos2, readlen), true);
 
-      flags.l = left_file.write(flg_id  + '\n' + leftread  + '\n' + '+\n' + qual + '\n');
-      flags.r = right_file.write(flg_id + '\n' + rightread + '\n' + '+\n' + qual + '\n');
+      flags.l = left_file.write(flg_id  + left_id + '\n' + leftread  + '\n' + '+\n' + qual + '\n');
+      flags.r = right_file.write(flg_id + right_id + '\n' + rightread + '\n' + '+\n' + qual + '\n');
       i++;
     }
 
