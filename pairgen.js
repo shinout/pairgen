@@ -97,7 +97,7 @@ function showinfo(config) {
   console.error('# SAVE DIR           : ' + config.save_dir);
   console.error('# PARALLEL           : ' + config.parallel);
   console.error('# DEPTH OF COVERAGE  : ' + config.depth);
-  console.error('# SUFFIX OF READS    : ' + "'" + config.pair_id[0] + '", "' + config.pair_id[1] + "'");
+  console.error('# SUFFIX OF READS    : ' + "'" + config.pair_id[0] + "', '" + config.pair_id[1] + "'");
   console.error('#############################');
 }
 
