@@ -4,3 +4,6 @@
 [submodule "lib/node-webworker"]
 	path = lib/node-webworker
 	url = github:shinout/node-webworker.git
+[submodule "lib/Struct"]
+	path = lib/Struct
+	url = github:shinout/Struct.js.git
