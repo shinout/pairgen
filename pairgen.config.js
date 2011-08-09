@@ -69,7 +69,7 @@ PairgenConfig = (function() {
 
     save_dir : {
       modifier: M.dir.bind({normalize: true}).quiet,
-      _default: pth.dirname(process.argv[1]),
+      _default: process.cwd(),
       enumerable: true,
       immutable: true
     },
