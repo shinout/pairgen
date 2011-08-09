@@ -2,6 +2,7 @@ const ArgParser = require('argparser');
 const fs        = require('fs');
 const Worker    = require('./lib/node-webworker');
 const PC        = require('./pairgen.config');
+const spawn     = require('child_process').spawn;
 
 function parseIntF(v) {
   var ret = parseInt(v);
@@ -58,6 +59,8 @@ function main() {
     return false;
   }
 
+  fs.mkdirSync(config.tmp_dir, '0755');
+
   showinfo(config);
 
   var total_end_count = 0;
@@ -75,12 +78,50 @@ function main() {
 
 
         total_end_count++;
-        if (total_end_count < config.parallel) {
-        }
-      };
-      config.para_id = i;
+        if (total_end_count < config.parallel) return;
 
-      worker.postMessage(config.toObject());
+        var lefts  = [];
+        var rights = [];
+        for (var i=0; i<config.parallel; i++) {
+          lefts.push('left_' + i);
+          rights.push('right_' + i);
+        }
+
+        function filepath(lr) {
+          return config.save_dir + '/' + 
+                 config.name + '_' + 
+                 ((lr=='l')?1:2) + '.fastq';
+        }
+
+        var finflag = 0;
+        function write_end() {
+          // console.log("write_end");
+          finflag++;
+          if (finflag < 2) return;
+          fs.rmdirSync(config.tmp_dir);
+        }
+
+        var catleft  = spawn('cat', lefts);
+        var catright = spawn('cat', rights);
+        var lwrite = fs.createWriteStream(filepath('l'));
+        var rwrite = fs.createWriteStream(filepath('r'));
+
+        catleft.stdout.pipe(lwrite);
+        catright.stdout.pipe(rwrite);
+
+        catleft.stdout.on('end', function() {
+          //console.log("left end");
+        });
+
+        lwrite.on('end', write_end);
+        rwrite.on('end', write_end);
+      };
+
+
+      config.para_id = i;
+      var conf4worker = config.toObject(true);
+      conf4worker.is_worker = true;
+      worker.postMessage(conf4worker);
     })(i);
   }
 }

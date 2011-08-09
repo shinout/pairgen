@@ -9,13 +9,6 @@ const fs            = require('fs');
 function Pairgen(config, make_contig) {
 	const self = this;
 
-  function getWritePath(lr) {
-    return config.save_dir + '/' + 
-		       config.name + '_' + 
-//					 config.para_id + '.' + 
-					 ((lr=='left')?1:2) + '.fastq';
-  }
-
 	// random [0 -1) function
   this.random = new XORShift(config.para_id, true); // function
 
@@ -30,10 +23,6 @@ function Pairgen(config, make_contig) {
 
 	// fastas
   this.fastas = new FASTAReader(config.path);
-
-	// output files
-	this.left_path  = getWritePath('left');
-	this.right_path = getWritePath('right');
 
   // weighted selection of rnames
   this.rselect = new WSelection((function(){
@@ -51,12 +40,12 @@ function Pairgen(config, make_contig) {
 
 
   /* files to write */
-  this.left_file  = fs.createWriteStream(this.left_path,  {
-		bufferSize: 40960, encoding: 'utf-8', flags: 'a'
+  this.left_file  = fs.createWriteStream(config.tmp_dir + '/left_' + config.para_id, {
+		bufferSize: 40960, encoding: 'utf-8', flags: 'w'
 	});
 
-  this.right_file = fs.createWriteStream(this.right_path, {
-		bufferSize: 40960, encoding: 'utf-8', flags: 'a'
+  this.right_file = fs.createWriteStream(config.tmp_dir + '/right_' + config.para_id, {
+		bufferSize: 40960, encoding: 'utf-8', flags: 'w'
 	});
 
 
@@ -140,10 +129,7 @@ Pairgen.prototype.run = function() {
 onmessage = function(msg) {
   const config = new PairgenConfig(msg.data);
   config.callback = function(pgen) {
-    postMessage({
-      left  : pgen.left_path,
-      right : pgen.right_path
-    });
+    postMessage({});
   };
 
   var pairgen = new Pairgen(config);

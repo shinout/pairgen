@@ -9,6 +9,13 @@ PairgenConfig = (function() {
   }
 
   _.defineStruct(PairgenConfig, {
+    is_worker: {
+      modifier   : M.boolean,
+      _default   : false,
+      enumerable : false,
+      immutable  : true
+    },
+
     path : {
       required : true,
       modifier: M.file.bind({normalize: true}),
@@ -64,6 +71,31 @@ PairgenConfig = (function() {
       modifier: M.dir.bind({normalize: true}).quiet,
       _default: pth.dirname(process.argv[1]),
       enumerable: true,
+      immutable: true
+    },
+
+    tmp_dir : {
+      get: function() { 
+        if (! _(this).tmp_dir) {
+          if (this.is_worker) return undefined;
+          const save_dir = this.save_dir;
+          var tmp;
+          do {
+            tmp = save_dir + '/.pairgen' + Math.random();
+          }
+          while (_.Modifiers.dir.quiet(tmp));
+          _(this).tmp_dir = tmp;
+        }
+        return _(this).tmp_dir;
+      },
+
+      set: function(v) {
+        if (this.is_worker) {
+          _(this).tmp_dir = _.Modifiers.dir(v);
+        }
+      },
+      enumerable: false,
+      required  : true,
       immutable: true
     },
 
@@ -127,10 +159,7 @@ PairgenConfig = (function() {
     callback : {
       modifier: M.func,
       _default: function(pairgen) {
-        return {
-          left  : pairgen.left_path,
-          right : pairgen.right_path,
-        };
+        return {};
       },
       enumerable: true,
       immutable: true
