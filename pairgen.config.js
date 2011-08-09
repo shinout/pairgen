@@ -79,11 +79,10 @@ PairgenConfig = (function() {
         if (! _(this).tmp_dir) {
           if (this.is_worker) return undefined;
           const save_dir = this.save_dir;
-          var tmp;
-          do {
-            tmp = save_dir + '/.pairgen' + Math.random();
+          var tmp = save_dir + '/.pairgen' + process.pid;
+          while (_.Modifiers.dir.quiet(tmp)) {
+            tmp += '.' + Math.random();
           }
-          while (_.Modifiers.dir.quiet(tmp));
           _(this).tmp_dir = tmp;
         }
         return _(this).tmp_dir;
