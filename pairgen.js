@@ -67,24 +67,20 @@ function main() {
 
   for (var i=0; i<config.parallel; i++) {
     (function(i) {
-      // MAP
       var worker = new Worker('pairgen.worker.js');
       
       // REDUCE
       worker.onmessage = function(msg) {
         worker.terminate(0.1);
-        var left  = msg.data.left;
-        var right = msg.data.right;
-
-
         total_end_count++;
         if (total_end_count < config.parallel) return;
+
 
         var lefts  = [];
         var rights = [];
         for (var i=0; i<config.parallel; i++) {
-          lefts.push('left_' + i);
-          rights.push('right_' + i);
+          lefts.push(config.tmp_dir + '/left_' + i);
+          rights.push(config.tmp_dir + '/right_' + i);
         }
 
         function filepath(lr) {
@@ -95,10 +91,9 @@ function main() {
 
         var finflag = 0;
         function write_end() {
-          // console.log("write_end");
           finflag++;
           if (finflag < 2) return;
-          fs.rmdirSync(config.tmp_dir);
+          spawn('rm', ['-rf', config.tmp_dir]); // TODO recursive rmdir.
         }
 
         var catleft  = spawn('cat', lefts);
@@ -109,18 +104,19 @@ function main() {
         catleft.stdout.pipe(lwrite);
         catright.stdout.pipe(rwrite);
 
-        catleft.stdout.on('end', function() {
-          //console.log("left end");
-        });
+        catright.stdout.on('end', write_end);
+
+        catleft.stdout.on('end', write_end);
 
         lwrite.on('end', write_end);
         rwrite.on('end', write_end);
-      };
+      }; // worker.onmessage
 
-
-      config.para_id = i;
       var conf4worker = config.toObject(true);
       conf4worker.is_worker = true;
+      conf4worker.para_id = i;
+
+      // MAP
       worker.postMessage(conf4worker);
     })(i);
   }
