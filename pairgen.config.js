@@ -1,108 +1,85 @@
-const pth = require('path');
+const pth    = require('path');
+const Struct = require('./lib/Struct/Struct');
 
 PairgenConfig = (function() {
-  const props = {};
-  const curid = 0;
-
-  /**
-   * CLASS DEFINITION
-   *
-   **/
+  const _ = new Struct('id');
+  const M = _.Modifiers;
   function PairgenConfig(obj) {
-    /**
-     * GENERATING UNIQUE ID
-     **/
-    Object.defineProperty(this, 'id', {
-      value    : ++curid,
-      writable : false
-    });
-
-    props[this.id] = {};
-
-    /**
-     * PUTTING VARIABLES
-     **/
-    Object.keys(PairgenConfig.prototype).forEach(function(k) {
-      if (typeof obj[k] !== "undefined") {
-        this[k] = obj[k];
-      }
-    }, this);
-
-    Object.seal(this);
-
+    _.construct(this, obj, {seal: true});
   }
 
-  /**
-   * PROPERTIES
-   **/
-  addProps(PairgenConfig.prototype, {
+  _.defineStruct(PairgenConfig, {
     path : {
-      validate : validatePath,
-      required : true
+      required : true,
+      modifier: M.file.bind({normalize: true}),
+      enumerable: true,
+      immutable: true
     },
 
     name : {
-      validate : function(v) {
-        v = v.toString();
-        if (!v) throw new Error('name must be specified.');
-        return v;
+      modifier : M.string.quiet.bind({min: 1, max: 20}),
+      defaultFunc : function() {
+        return pth.basename(_(this).path);
       },
-
-      get : function() {
-        if (_(this).name === undefined) {
-          _(this).name = pth.basename(_(this).path);
-        }
-        return get('name').call(this);
-      }
+      enumerable: true,
+      immutable: true
     },
 
     seq_id : {
-      validate : function(v) {
-        if (v === null) return null;
-        v = v.toString();
-        if (!v) throw new Error('name must be specified.');
-        return v;
-      },
+      modifier: M.some(M.isNull, M.string),
+      enumerable: true,
+      immutable: true,
       _default: null
     },
 
     width : {
-      validate: validateInt,
-      _default: 200
+      modifier: M.integer.quiet,
+      _default: 200,
+      enumerable: true,
+      immutable: true
     },
 
     readlen : {
-      validate: validateInt,
-      _default: 100
+      modifier: M.integer.bind({min: 10, max: 10000}).quiet,
+      _default: 100,
+      enumerable: true,
+      immutable: true
     },
 
     dev : {
-      validate: validateInt,
-      _default: 50
+      modifier: M.number.bind({min: 0}).quiet,
+      _default: 50,
+      enumerable: true,
+      immutable: true
     },
 
     depth : {
-      validate: validateInt,
-      _default: 40
+      modifier: M.number.bind({min: 0.01, max: 10000}).quiet,
+      _default: 40,
+      enumerable: true,
+      immutable: true
     },
 
     save_dir : {
-      validate: validatePath,
-      _default: '.'
+      modifier: M.dir.bind({normalize: true}).quiet,
+      _default: pth.dirname(process.argv[1]),
+      enumerable: true,
+      immutable: true
     },
 
     parallel : {
-      validate: validateInt,
-      _default: 1
+      modifier: M.integer.bind({min: 1, max: 100}).quiet,
+      _default: 1,
+      enumerable: true,
+      immutable: true
     },
 
     pair_id : {
-      set : function(v) {
+      modifier: function(v) {
         /* pair identifier */
         var left_id, right_id;
         if (v instanceof Array && v.length == 2) {
-          _(this).pair_id = v;
-          return;
+          return v;
         }
 
         switch (v) {
@@ -134,44 +111,54 @@ PairgenConfig = (function() {
             right_id = '_R3';
             break;
         }
-        _(this).pair_id  = [left_id, right_id];
+        return [left_id, right_id];
       },
-      _default: ['', '']
+      _default: ['', ''],
+      enumerable: true,
+      immutable: true,
     },
 
     para_id : {
-      validate: validateInt
+      modifier: M.integer,
+      enumerable: true,
+      immutable: true
     },
 
     callback : {
-      validate: validateFunction,
+      modifier: M.func,
       _default: function(pairgen) {
         return {
           left  : pairgen.left_path,
           right : pairgen.right_path,
         };
-      }
+      },
+      enumerable: true,
+      immutable: true
     },
 
     // the "this" of this fucntion is an instance of Pairgen. (not PairgenConfig)
     modify_seq : {
-      validate: validateFunction,
+      modifier: M.func,
       _default: function(fastas, rname, start, len) {
         return fastas.fetch(rname, start, len);
-      }
+      },
+      enumerable: true,
+      immutable: true
     },
 
     // the "this" of this fucntion is an instance of Pairgen. (not PairgenConfig)
     modify_qual : {
-      validate: validateFunction,
+      modifier: M.func,
       _default: function(qual, seq) {
         return qual;
-      }
+      },
+      enumerable: true,
+      immutable: true
     },
 
     // the "this" of this fucntion is an instance of Pairgen. (not PairgenConfig)
     get_fragment_id : {
-      validate: validateFunction,
+      modifier: M.func,
       _default: function(i, pos, pos2, distance) {
         return [
           'PAIRGEN',
@@ -182,93 +169,20 @@ PairgenConfig = (function() {
           i,
           this.config.para_id
         ].join('_');
-      }
+      },
+      enumerable: true,
+      immutable: true
     }
-
   });
-
-
-  /** 
-   * STUFFS TO SUPPORT PRIVATE VARIABLES IN CLASS.
-   * NO NEED TO SEE 
-   **/
-  function _(o) { return props[o.id] }
-  const _defaults = props[0];
-  Object.freeze(_defaults);
-
-  function get(property, required) {
-    return function() {
-      var ret = _(this)[property];
-      if (ret !== undefined) return ret 
-      if (required) throw new Error(property + ' is required.');
-      return _defaults[property];
-    };
-  }
-
-  function set(property, fn) {
-    if (typeof fn == 'function') {
-      return function(v) { _(this)[property] = fn.call(this, v); }
-    }
-    else {
-      return function(v) { _(this)[property] = v; }
-    }
-  }
-
-  function addProps(obj, vals) {
-    props[0] = {};
-    Object.keys(vals).forEach(function(name) {
-      Object.defineProperty(obj, name, {
-        get : (typeof vals[name].get === "function") ? vals[name].get : get(name, vals[name].required),
-        set : (typeof vals[name].set === "function") ? vals[name].set : set(name, vals[name].validate),
-        enumerable : (vals[name].enumerable !== undefined) ? vals[name].enumerable : true,
-        configurable : (vals[name].configurable !== undefined) ? vals[name].configurable : true,
-      });
-      props[0][name] = vals[name]._default;
-    });
-  }
-
-  /**
-   * UTILITY FUNCTIONS
-   **/
-  function validateInt(v) {
-    var ret = parseInt(v);
-    if (isNaN(ret) || v === false || v === null || v === undefined) throw new Error("invalid int.");
-    return ret;
-  }
-
-  function validatePath(v) {
-    if (!pth.existsSync(v)) throw new Error(v + ': No such file or directory.');
-    return v;
-  }
-
-  function validateFunction(v) {
-    if (typeof v != "function") throw new Error(v + ' is not a function');
-    return v;
-  }
-
-  PairgenConfig._defaults = _defaults;
-
-  PairgenConfig.prototype.toHash = function() {
-    var ret = {};
-    Object.keys(PairgenConfig.prototype).forEach(function(k) {
-      ret[k] = this[k];
-    }, this);
-    return ret;
-  };
-
   return PairgenConfig;
 })();
 
-
-
 function test() {
-  var config = new PairgenConfig({name :"shinout", path: "pairgen.js"});
-  console.log(config.path);
-  console.log(config.name);
-  console.log(config.save_dir);
-  console.log(config.depth);
+  console.log(PairgenConfig.getDefault('depth'));
+  var config = new PairgenConfig({path: "pairgen.js"});
+  console.log(config.toObject());
   try {
-    config.depth = "unko";
+    config.depth = "ABC";
   }
   catch (e) {
     console.log(e.message);

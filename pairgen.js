@@ -1,7 +1,7 @@
-const ArgParser     = require('argparser');
-const fs            = require('fs');
-const Worker        = require('./lib/node-webworker');
-const PairgenConfig = require('./pairgen.config.js');
+const ArgParser = require('argparser');
+const fs        = require('fs');
+const Worker    = require('./lib/node-webworker');
+const PC        = require('./pairgen.config');
 
 function parseIntF(v) {
   var ret = parseInt(v);
@@ -21,15 +21,15 @@ function main() {
     console.error('[usage]');
     console.error('\t' + cmd + ' <fasta file>');
     console.error('[options]');
-    console.error('\t' + '--name\tname of the sequence. default = basename(file)');
-    console.error('\t' + '--seq_id\tid of the sequence determined by FASTA. If null, then uses the first sequence id.');
-    console.error('\t' + '--width\tmean pair distance ( width + readlen * 2 == total flagment length ) default = 200');
-    console.error('\t' + '--readlen\tlength of the read. default = 108');
-    console.error('\t' + '--dev\tstandard deviation of the total fragment length. default = 50');
-    console.error('\t' + '--depth\tphysical read depth. default = 40');
-    console.error('\t' + '--save_dir\tdirectory to save result. default = "."');
+    console.error('\t' + '--name\tname of the sequence. default = basename(path)');
+    console.error('\t' + '--seq_id\tid of the sequence determined by FASTA. If null, then uses the first sequence id. default = ' + PC.getDefault('seq_id'));
+    console.error('\t' + '--width\tmean pair distance ( width + readlen * 2 == total flagment length ) default = ' + PC.getDefault('width'));
+    console.error('\t' + '--readlen\tlength of the read. default = ' + PC.getDefault('readlen'));
+    console.error('\t' + '--dev\tstandard deviation of the total fragment length. default = ' + PC.getDefault('dev'));
+    console.error('\t' + '--depth\tphysical read depth. default = ' + PC.getDefault('depth'));
+    console.error('\t' + '--save_dir\tdirectory to save result. default = ' + PC.getDefault('save_dir'));
     console.error('\t' + '--pair_id <id_type>\tpair id type, put pair information explicitly. id_type is one of A, 1, F, F3.');
-    console.error('\t' + '--parallel\tthe number of processes to run. default: 1');
+    console.error('\t' + '--parallel\tthe number of processes to run. default: ' + PC.getDefault('parallel'));
   }
 
   if (!p.getArgs(0)) {
@@ -39,7 +39,7 @@ function main() {
 
   const fastafile = p.getArgs(0);
   try {
-    const config = new PairgenConfig({
+    const config = new PC({
       path     : p.getArgs(0),
       name     : p.getOptions('name'),
       seq_id   : p.getOptions('seq_id'),
@@ -80,7 +80,7 @@ function main() {
       };
       config.para_id = i;
 
-      worker.postMessage(config.toHash());
+      worker.postMessage(config.toObject());
     })(i);
   }
 }
