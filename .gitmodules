@@ -7,3 +7,6 @@
 [submodule "lib/Struct"]
 	path = lib/Struct
 	url = github:shinout/Struct.js.git
+[submodule "lib/Junjo"]
+	path = lib/Junjo
+	url = github:shinout/Junjo.js

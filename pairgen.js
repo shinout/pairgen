@@ -64,6 +64,7 @@ function main() {
   showinfo(config);
 
   var total_end_count = 0;
+  Worker.sockdir = config.tmp_dir;
 
   for (var i=0; i<config.parallel; i++) {
     (function(i) {
