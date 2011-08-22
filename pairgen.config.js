@@ -17,10 +17,16 @@ PairgenConfig = (function() {
     },
 
     path : {
-      required : true,
-      modifier: M.file.bind({normalize: true}),
-      enumerable: true,
-      immutable: true
+      required   : true,
+      modifier   : M.file.bind({normalize : true}),
+      enumerable : true,
+      immutable  : true
+    },
+
+    rangebed : {
+      modifier   : M.some(M.isNull, M.file.bind({normalize : true})),
+      enumerable : true,
+      immutable  : true
     },
 
     name : {
@@ -30,13 +36,6 @@ PairgenConfig = (function() {
       },
       enumerable: true,
       immutable: true
-    },
-
-    seq_id : {
-      modifier: M.some(M.isNull, M.string),
-      enumerable: true,
-      immutable: true,
-      _default: null
     },
 
     width : {
@@ -63,6 +62,13 @@ PairgenConfig = (function() {
     depth : {
       modifier: M.number.bind({min: 0.01, max: 10000}).quiet,
       _default: 40,
+      enumerable: true,
+      immutable: true
+    },
+
+    ranges : {
+      modifier: M.array.quiet,
+      _default: [],
       enumerable: true,
       immutable: true
     },
