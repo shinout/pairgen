@@ -118,7 +118,7 @@ function read(bedfile, freader) {
       ret.push(values);
       // console.log(values.join('\t'));
     });
-    j.out = ret;
+    this.out = ret;
   }).after();
 
   j.catchesAbove(function(e) {

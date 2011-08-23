@@ -77,7 +77,7 @@ function main() {
           config.depth
         ]);
       });
-      j.out = ranges;
+      this.out = ranges;
     });
   }
 
