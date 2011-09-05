@@ -205,7 +205,7 @@ PairgenConfig = (function() {
 
     p5 : {
       modifier   : M.string.quiet.bind({min : 10}),
-      _default   : 'AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT', // 5' -> 3'
+      _default   : 'GATCGGAAGAGCGGTTCAGCAGGAATGCCGAG', // 5' -> 3'
       enumerable : true,
       immutable  : true
     },
@@ -219,14 +219,14 @@ PairgenConfig = (function() {
 
     adapter1 : {
       modifier   : M.string.quiet.bind({min : 10}),
-      _default   : 'GATCGGAAGAGCTCGTATGCCGTCTTCTGCTTG', // 5' -> 3'
+      _default   : 'AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT', // 5' -> 3'
       enumerable : true,
       immutable  : true
     },
 
     adapter2 : {
       modifier   : M.string.quiet.bind({min : 10}),
-      _default   : 'ACACTCTTTCCCTACACGACGCTCTTCCGATCT', // 5' -> 3'
+      _default   : 'CAAGCAGAAGACGGCATACGAGATCGGTCTCGGCATTCCTGCTGAACCGCTCTTCCGATCT', // 5' -> 3'
       enumerable : true,
       immutable  : true
     }
