@@ -81,7 +81,6 @@ function main() {
       var ranges = [];
       Object.keys(freader.result).forEach(function(rname) {
         var fasta = freader.result[rname];
-				console.log(fasta.getEndPos());
         ranges.push([
           rname,
           1,
@@ -146,18 +145,22 @@ function main() {
             if (finflag < 2) return;
             spawn('rm', ['-rf', config.tmp_dir]); // TODO recursive rmdir.
 
-            // report actual depth
+            // report output information
+            console.error('#############################');
+            console.error('# OUTPUT INFORMATION');
+            // actural depth
             Object.keys(totalFailCounts).forEach(function(rangeId) {
               var range = ranges[rangeId];
               var depth = range[3], newdepth = depth;
               var numer = totalFailCounts[rangeId][0];
               var denom = totalFailCounts[rangeId][1];
               if (denom) {
-                var newdepth = Math.floor(depth * (denom - numer) / denom);
+                var newdepth = Math.floor(depth * (denom - numer) / denom * 10) / 10;
               }
               range.push(newdepth);
-              console.log(range.join('\t'));
+              console.error('# ' + range.join('\t'));
             });
+            console.error('#############################');
           }
 
           var catleft  = spawn('cat', lefts);
