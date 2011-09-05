@@ -170,17 +170,15 @@ PairgenConfig = (function() {
       immutable: true
     },
 
-    // the "this" of this fucntion is an instance of Pairgen. (not PairgenConfig)
     modify_seq : {
       modifier: M.func,
-      _default: function(fastas, rname, start, len) {
-        return fastas.fetch(rname, start, len);
+      _default: function(seq, len) {
+        return seq.slice(0, len);
       },
       enumerable: true,
       immutable: true
     },
 
-    // the "this" of this fucntion is an instance of Pairgen. (not PairgenConfig)
     modify_qual : {
       modifier: M.func,
       _default: function(qual, seq) {
@@ -190,18 +188,15 @@ PairgenConfig = (function() {
       immutable: true
     },
 
-    // the "this" of this fucntion is an instance of Pairgen. (not PairgenConfig)
     get_fragment_id : {
       modifier: M.func,
-      _default: function(i, pos, pos2, distance) {
+      _default: function(rname, start, end, depth, pos, tlen,para_id, parallel,i, till) {
         return [
           'PAIRGEN',
-          this.config.name,
-          pos,
-          pos2,
-          distance,
-          i,
-          this.config.para_id
+          rname + ':' + start + '-' + end + ':' + depth,
+          'Po' + pos + '-' + (pos + tlen -1) + ':' + tlen,
+          'Pa' + (para_id + 1) + ':' + parallel,
+          'It' + i + ':' + till
         ].join('_');
       },
       enumerable: true,

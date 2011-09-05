@@ -62,7 +62,6 @@ Pairgen.prototype.runInOneRange = function(range, callback) {
 
   const random   = this.random;
   const readlen  = this.config.readlen;
-  const minread  = 10;  // FIXME
   const qual     = this.qual;
   const fastas   = this.fastas;
   const config   = this.config;
@@ -74,6 +73,12 @@ Pairgen.prototype.runInOneRange = function(range, callback) {
   const left_id  = config.pair_id[0];
   const right_id = config.pair_id[1];
   const baselen  = end - start + 1;
+  const ad1      = config.p5 + config.adapter1;
+  const ad1compl = dna.complStrand(ad1, true); // 3' -> 5'
+  const ad2      = config.p7 + config.adapter2;
+  const ad2compl = dna.complStrand(ad2, true); // 3' -> 5'
+  const para_id  = config.para_id;
+  const parallel = config.parallel;
 
   const till = Math.floor(baselen * depth / (2 * config.readlen) / config.parallel + 0.5);
 
@@ -81,75 +86,52 @@ Pairgen.prototype.runInOneRange = function(range, callback) {
 
   const self = this;
   (function() {
-    do {
-      // template length
-      var tlen = Math.floor(norm_rand(meanTlen, dev, random) + 0.5);
-    }
-    while (tlen < readlen);
 
-    var leftMost     = start - tlen + minread;   // leftmost range of template
-    var rightMost    = end - minread;            // rightmost range of template
-
-    var leftPos      = Math.floor(random() * (rightMost - leftMost) + 0.5) + leftMost; // leftside position of template
-    var readLeftPos  = Math.max(start, leftPos);            // the leftmost readable region in the left read
-    var leftReadLen  = leftPos + readlen - readLeftPos; // the length of readable regions
-
-    var rightPos     = leftPos + tlen - 1;                     // rightmost position
-    var readRightPos = rightPos - readlen + 1;                 // the leftmost readable region in the right read
-    var rightReadLen = Math.min(end, rightPos) - readRightPos + 1; // the length of readable regions
-
-    var flg_id       = gfid.call(self, i, leftPos, rightPos, tlen); // fragment id
-
-    /*
-    console.log('LEFTMOST', leftMost);
-    console.log('START', start);
-    console.log('END', end);
-    console.log('RIGHTMOST', rightMost);
-
-    console.log('LEFT POS', leftPos);
-    console.log('RIGHT POS', rightPos);
-
-    console.log('READ LEFT POS', readLeftPos);
-    console.log('LEFT READ LEN', leftReadLen);
-
-    console.log('READ RIGHT POS', readRightPos);
-    console.log('RIGHT READ LEN', rightReadLen);
-    console.log('---------------------------------------');
-    */
-
-    // if the length of readable regions is longer than minread
-    if (leftReadLen >= minread && !fastas.hasN(rname, readLeftPos, leftReadLen)) {
-      var leftread = ms.call(self, fastas, rname, readLeftPos, leftReadLen).toUpperCase();
-
-      var left_written = self.left_file.write(
-        '@' + flg_id  + left_id + '\n' + 
-        leftread  + '\n' + 
-        '+\n' + 
-        mq.call(self, qual, leftread) + '\n'
-      );
+    function next(fn) {
+      i++;
+      if (i == till) {
+        callback();
+      }
+      else {
+        process.nextTick(fn);
+      }
     }
 
-    // if the length of readable regions is longer than minread
-    if (rightReadLen >= minread && !fastas.hasN(rname, readRightPos, rightReadLen)) {
-      var rightread = ms.call(self, fastas, rname, readRightPos, rightReadLen).toUpperCase();
+    var tlen = Math.floor(norm_rand(meanTlen, dev, random) + 0.5);
+    if (end - tlen < start) { return next(arguments.callee) }
 
-      var right_written = self.right_file.write(
-        '@' + flg_id + right_id + '\n' + 
-        rightread + '\n' +
-        '+\n' + 
-        mq.call(self, qual, rightread) + '\n'
-      );
-    }
+    var pos = Math.floor(random() * (end - tlen - start) + 0.5) + start; // leftside position of template
 
-    i++;
+    if (fastas.hasN(rname, pos, tlen)) { return next(arguments.callee) }
 
-    if (i == till) {
-      callback();
-    }
-    else {
-      var callee = arguments.callee;
-      process.nextTick(callee);
-    }
+    var template = fastas.fetch(rname, pos, tlen);
+
+    var leftseq  = template + ad2compl;
+    var rightseq = dna.complStrand(template, true) + ad1compl;
+
+    if (leftseq.length < readlen || rightseq.length < readlen) { return next(arguments.callee) }
+
+    var frg_id = gfid(rname, start, end, depth,   pos, tlen,   para_id, parallel,    i, till); // fragment id
+
+    var leftread  = ms(leftseq,  readlen);
+    var rightread = ms(rightseq, readlen);
+
+    self.left_file.write(
+      '@' + frg_id  + left_id + '\n' +
+      leftread + '\n' +
+      '+\n' + 
+      mq(qual, leftread) + '\n'
+    );
+
+    self.right_file.write(
+      '@' + frg_id  + right_id + '\n' +
+      rightread + '\n' +
+      '+\n' + 
+      mq(qual, rightread) + '\n'
+    );
+
+    next(arguments.callee);
+
   })();
 };
 

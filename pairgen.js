@@ -58,8 +58,11 @@ function main() {
       depth    : p.getOptions('depth'),
       save_dir : p.getOptions('save_dir'),
       parallel : p.getOptions('parallel'),
-      pair_id  : p.getOptions('pair_id')
-
+      pair_id  : p.getOptions('pair_id'),
+      p5       : p.getOptions('p5'),
+      p7       : p.getOptions('p7'),
+      adapter1 : p.getOptions('adapter1'),
+      adapter2 : p.getOptions('adapter2')
     });
   }
   catch (e) {
@@ -178,6 +181,10 @@ function showinfo(config) {
   console.error('# PARALLEL           : ' + config.parallel);
   console.error('# DEPTH OF COVERAGE  : ' + ((hasRanges) ? '(DEPENDS ON EACH RANGE DATA)': config.depth));
   console.error('# SUFFIX OF READS    : ' + "'" + config.pair_id[0] + "', '" + config.pair_id[1] + "'");
+  console.error('# P5 ADAPTER         : ' + config.p5);
+  console.error('# P7 ADAPTER         : ' + config.p7);
+  console.error('# PRIMER SEQUENCE 1  : ' + config.adapter1);
+  console.error('# PRIMER SEQUENCE 2  : ' + config.adapter2);
   console.error('#############################');
 }
 
