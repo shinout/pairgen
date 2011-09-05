@@ -62,6 +62,7 @@ Pairgen.prototype.runInOneRange = function(range, callback) {
 
   const random   = this.random;
   const readlen  = this.config.readlen;
+  const minread  = 10;  // FIXME
   const qual     = this.qual;
   const fastas   = this.fastas;
   const config   = this.config;
@@ -79,46 +80,77 @@ Pairgen.prototype.runInOneRange = function(range, callback) {
   var i = 0;
 
   const self = this;
-  var timerId = setTimeout(function() {
-    var callee = arguments.callee;
-    var next = function() { timerId = setTimeout(callee, 0) };
-    if (i == till) {
-      clearInterval(timerId);
-      callback();
-      return;
+  (function() {
+    do {
+      // template length
+      var tlen = Math.floor(norm_rand(width, dev, random) + 0.5) + readlen * 2;
+    }
+    while (tlen < readlen);
+
+    var leftMost     = start - tlen + minread;   // leftmost range of template
+    var rightMost    = end - minread;            // rightmost range of template
+
+    var leftPos      = Math.floor(random() * (rightMost - leftMost) + 0.5) + leftMost; // leftside position of template
+    var readLeftPos  = Math.max(start, leftPos);            // the leftmost readable region in the left read
+    var leftReadLen  = leftPos + readlen - readLeftPos; // the length of readable regions
+
+    var rightPos     = leftPos + tlen - 1;                     // rightmost position
+    var readRightPos = rightPos - readlen + 1;                 // the leftmost readable region in the right read
+    var rightReadLen = Math.min(end, rightPos) - readRightPos + 1; // the length of readable regions
+
+    var flg_id       = gfid.call(self, i, leftPos, rightPos, tlen); // fragment id
+
+    /*
+    console.log('LEFTMOST', leftMost);
+    console.log('START', start);
+    console.log('END', end);
+    console.log('RIGHTMOST', rightMost);
+
+    console.log('LEFT POS', leftPos);
+    console.log('RIGHT POS', rightPos);
+
+    console.log('READ LEFT POS', readLeftPos);
+    console.log('LEFT READ LEN', leftReadLen);
+
+    console.log('READ RIGHT POS', readRightPos);
+    console.log('RIGHT READ LEN', rightReadLen);
+    console.log('---------------------------------------');
+    */
+
+    // if the length of readable regions is longer than minread
+    if (leftReadLen >= minread && !fastas.hasN(rname, readLeftPos, leftReadLen)) {
+      var leftread = ms.call(self, fastas, rname, readLeftPos, leftReadLen).toUpperCase();
+
+      var left_written = self.left_file.write(
+        '@' + flg_id  + left_id + '\n' + 
+        leftread  + '\n' + 
+        '+\n' + 
+        mq.call(self, qual, leftread) + '\n'
+      );
     }
 
-    do {
-      var distance = Math.floor(norm_rand(width, dev, random) + 0.5);
-      var maxpos    = end - distance - readlen * 2;
-    } while (distance < - readlen || maxpos < start || maxpos > end);
+    // if the length of readable regions is longer than minread
+    if (rightReadLen >= minread && !fastas.hasN(rname, readRightPos, rightReadLen)) {
+      var rightread = ms.call(self, fastas, rname, readRightPos, rightReadLen).toUpperCase();
 
-    // limit position equals max - distance - readlen * 2
-    var startpos  = Math.floor(random() * (maxpos - start) + 0.5) + start;
-    var startpos2 = startpos + readlen + distance;
-    var flg_id    = gfid.call(self, i, startpos, startpos2, distance);
-    var leftread  = ms.call(self, fastas, rname, startpos, readlen).toUpperCase();
-    var rightread = dna.complStrand(ms.call(self, fastas, rname, startpos2, readlen).toUpperCase(), true);
+      var right_written = self.right_file.write(
+        '@' + flg_id + right_id + '\n' + 
+        rightread + '\n' +
+        '+\n' + 
+        mq.call(self, qual, rightread) + '\n'
+      );
+    }
 
-    if (fastas.hasN(rname, startpos, readlen)) next();
-    if (fastas.hasN(rname, startpos2, readlen)) next();
-
-    var left_written = self.left_file.write(
-      '@' + flg_id  + left_id + '\n' + 
-      leftread  + '\n' + 
-      '+\n' + 
-      mq.call(self, qual, leftread) + '\n'
-    );
-
-    var right_written = self.right_file.write(
-      '@' + flg_id + right_id + '\n' + 
-      rightread + '\n' +
-      '+\n' + 
-      mq.call(self, qual, rightread) + '\n'
-    );
     i++;
-    next();
-  }, 0);
+
+    if (i == till) {
+      callback();
+    }
+    else {
+      var callee = arguments.callee;
+      process.nextTick(callee);
+    }
+  })();
 };
 
 

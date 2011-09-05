@@ -206,6 +206,41 @@ PairgenConfig = (function() {
       },
       enumerable: true,
       immutable: true
+    },
+
+    width : {
+      modifier: M.integer.quiet,
+      _default: 200,
+      enumerable: true,
+      immutable: true
+    },
+
+    p5 : {
+      modifier   : M.string.quiet.bind({min : 10}),
+      _default   : 'AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT', // 5' -> 3'
+      enumerable : true,
+      immutable  : true
+    },
+
+    p7 : {
+      modifier   : M.string.quiet.bind({min : 10}),
+      _default   : 'ACACTCTTTCCCTACACGACGCTCTTCCGATCT', // 5' -> 3'
+      enumerable : true,
+      immutable  : true
+    },
+
+    adapter1 : {
+      modifier   : M.string.quiet.bind({min : 10}),
+      _default   : 'GATCGGAAGAGCTCGTATGCCGTCTTCTGCTTG', // 5' -> 3'
+      enumerable : true,
+      immutable  : true
+    },
+
+    adapter2 : {
+      modifier   : M.string.quiet.bind({min : 10}),
+      _default   : 'ACACTCTTTCCCTACACGACGCTCTTCCGATCT', // 5' -> 3'
+      enumerable : true,
+      immutable  : true
     }
   });
   return PairgenConfig;

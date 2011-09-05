@@ -15,8 +15,9 @@ function main() {
   p.defaults.valopts = undefined;
   p.addOptions([]).addValueOptions([
     'name','width','readlen',
-    'dev','depth','save_dir','parallel','pair_id', 'exename']
-  ).parse();
+    'dev','depth','save_dir','parallel','pair_id', 'exename',
+    'p5', 'p7', 'adapter1', 'adapter2'
+  ]).parse();
 
   function showUsage() {
     const cmd = p.getOptions('exename') || (process.argv[0] + ' ' + require('path').basename(process.argv[1]));
@@ -31,6 +32,10 @@ function main() {
     console.error('\t' + '--save_dir\tdirectory to save result. default = ' + PC.getDefault('save_dir'));
     console.error('\t' + '--pair_id <id_type>\tpair id type, put pair information explicitly. id_type is one of A, 1, F, F3.');
     console.error('\t' + '--parallel\tthe number of processes to run. default: ' + PC.getDefault('parallel'));
+    console.error('\t' + '--p5\tIllumina P5 adapter. default: ' + PC.getDefault('p5'));
+    console.error('\t' + '--p7\tIllumina P7 adapter. default: ' + PC.getDefault('p7'));
+    console.error('\t' + '--adapter1\tIllumina Sequence Primer#1. default: ' + PC.getDefault('adapter1'));
+    console.error('\t' + '--adapter2\tIllumina Sequence Primer#2. default: ' + PC.getDefault('adapter2'));
   }
 
   if (!p.getArgs(0)) {
@@ -62,14 +67,15 @@ function main() {
   const freader = new FASTAReader(fastafile);
   if (config.rangebed) {
     const read = require('./pairgen.input');
-    var j = read(config.rangebed, freader);
+    var $j = read(config.rangebed, freader);
   }
   else {
-    var j = new (require('./lib/Junjo/Junjo'))();
-    j(function(){
+    var $j = new (require('./lib/Junjo/Junjo'))();
+    $j(function(){
       var ranges = [];
       Object.keys(freader.result).forEach(function(rname) {
         var fasta = freader.result[rname];
+				console.log(fasta.getEndPos());
         ranges.push([
           rname,
           1,
@@ -81,7 +87,7 @@ function main() {
     });
   }
 
-  j.on('end', function(err, ranges) {
+  $j.on('end', function(err, ranges) {
     if (err) {
       console.error("terminated with errors.");
       return;
@@ -104,7 +110,6 @@ function main() {
           worker.terminate(0.1);
           total_end_count++;
           if (total_end_count < config.parallel) return;
-
 
           var lefts  = [];
           var rights = [];
@@ -152,7 +157,7 @@ function main() {
     }
   });
 
-  j.run();
+  $j.run();
 }
 
 function showinfo(config) {
