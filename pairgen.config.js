@@ -38,9 +38,9 @@ PairgenConfig = (function() {
       immutable: true
     },
 
-    width : {
+    tlen : {
       modifier: M.integer.quiet,
-      _default: 200,
+      _default: 400,
       enumerable: true,
       immutable: true
     },
@@ -204,13 +204,6 @@ PairgenConfig = (function() {
           this.config.para_id
         ].join('_');
       },
-      enumerable: true,
-      immutable: true
-    },
-
-    width : {
-      modifier: M.integer.quiet,
-      _default: 200,
       enumerable: true,
       immutable: true
     },

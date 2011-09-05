@@ -14,7 +14,7 @@ function main() {
   const p = new ArgParser();
   p.defaults.valopts = undefined;
   p.addOptions([]).addValueOptions([
-    'name','width','readlen',
+    'name','width','readlen', 'tlen',
     'dev','depth','save_dir','parallel','pair_id', 'exename',
     'p5', 'p7', 'adapter1', 'adapter2'
   ]).parse();
@@ -25,8 +25,8 @@ function main() {
     console.error('\t' + cmd + ' <fasta file> [<ranges bed file>]');
     console.error('[options]');
     console.error('\t' + '--name\tname of the sequence. default = basename(path)');
-    console.error('\t' + '--width\tmean pair distance ( width + readlen * 2 == total flagment length ) default = ' + PC.getDefault('width'));
     console.error('\t' + '--readlen\tlength of the read. default = ' + PC.getDefault('readlen'));
+    console.error('\t' + '--tlen\tlength of the template. default = ' + PC.getDefault('tlen'));
     console.error('\t' + '--dev\tstandard deviation of the total fragment length. default = ' + PC.getDefault('dev'));
     console.error('\t' + '--depth\tphysical read depth. default = ' + PC.getDefault('depth'));
     console.error('\t' + '--save_dir\tdirectory to save result. default = ' + PC.getDefault('save_dir'));
@@ -45,11 +45,14 @@ function main() {
 
   const fastafile = p.getArgs(0);
   try {
+    if (p.getOptions('width')) {
+      throw new Error('"width" is the deprecated option. Use tlen, which stands for template length ( width + 2 * readlen).');
+    }
     const config = new PC({
       path     : p.getArgs(0),
       rangebed : p.getArgs(1),
       name     : p.getOptions('name'),
-      width    : p.getOptions('width'),
+      tlen     : p.getOptions('tlen'),
       readlen  : p.getOptions('readlen'),
       dev      : p.getOptions('dev'),
       depth    : p.getOptions('depth'),
@@ -168,7 +171,7 @@ function showinfo(config) {
   console.error('# NAME               : ' + config.name);
   console.error('# REFERENCE NAME     : ' + ((hasRanges) ? '(ALL IN THE BED FILE)' :'(ALL IN THE FASTA FILE)'));
   console.error('# READ LENGTH        : ' + config.readlen);
-  console.error('# MEAN PAIR DISTANCE : ' + config.width);
+  console.error('# TEMPLATE LENGTH    : ' + config.tlen);
   console.error('# STDDEV OF DISTANCE : ' + config.dev);
   console.error('# RANGES FILE        : ' + config.rangebed);
   console.error('# SAVE DIR           : ' + config.save_dir);

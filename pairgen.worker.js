@@ -66,8 +66,8 @@ Pairgen.prototype.runInOneRange = function(range, callback) {
   const qual     = this.qual;
   const fastas   = this.fastas;
   const config   = this.config;
-  const width    = config.width;
-  const dev      = config.width;
+  const meanTlen = config.tlen;
+  const dev      = config.dev;
   const ms       = config.modify_seq;
   const mq       = config.modify_qual;
   const gfid     = config.get_fragment_id;
@@ -75,7 +75,7 @@ Pairgen.prototype.runInOneRange = function(range, callback) {
   const right_id = config.pair_id[1];
   const baselen  = end - start + 1;
 
-  const till     = Math.floor(baselen * depth / (2 * config.readlen) / config.parallel + 0.5);
+  const till = Math.floor(baselen * depth / (2 * config.readlen) / config.parallel + 0.5);
 
   var i = 0;
 
@@ -83,7 +83,7 @@ Pairgen.prototype.runInOneRange = function(range, callback) {
   (function() {
     do {
       // template length
-      var tlen = Math.floor(norm_rand(width, dev, random) + 0.5) + readlen * 2;
+      var tlen = Math.floor(norm_rand(meanTlen, dev, random) + 0.5);
     }
     while (tlen < readlen);
 
