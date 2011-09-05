@@ -10,6 +10,7 @@ function Pairgen(config) {
 
   // random [0 -1) function
   this.random = new XORShift(config.para_id, true); // function
+  this.failcounts = {};
 
   // quality. IIIIIIIIIII............ 
   this.qual   = (function(){ 
@@ -39,21 +40,21 @@ function Pairgen(config) {
 }
 
 Pairgen.prototype.run = function() {
-  var j = new Junjo({timeout: 0});
+  var $j = new Junjo({ timeout: 0 });
   var self = this;
 
-  j.on('end', function() {
-    self.config.callback(self);
+  self.config.ranges.forEach(function(range, k) {
+    $j(self.runInOneRange).bind(self, range, k, $j.callback).after();
   });
 
-  self.config.ranges.forEach(function(range) {
-    j(self.runInOneRange).bind(self, range, j.callback).after();
+  $j.on('end', function() {
+    self.config.callback(self.failcounts);
   });
 
-  j.run();
+  $j.run();
 };
 
-Pairgen.prototype.runInOneRange = function(range, callback) {
+Pairgen.prototype.runInOneRange = function(range, rangeId, callback) {
   // range is a bed formatted line with depth data in the 4th column
   const rname    = range[0];
   const start    = range[1];
@@ -82,14 +83,16 @@ Pairgen.prototype.runInOneRange = function(range, callback) {
 
   const till = Math.floor(baselen * depth / (2 * config.readlen) / config.parallel + 0.5);
 
-  var i = 0;
+  var i = 0, failcount = 0;
 
   const self = this;
   (function() {
 
-    function next(fn) {
+    function next(fn, failed) {
+      if (failed) failcount++;
       i++;
       if (i == till) {
+        self.failcounts[rangeId] = [failcount, till];
         callback();
       }
       else {
@@ -98,20 +101,20 @@ Pairgen.prototype.runInOneRange = function(range, callback) {
     }
 
     var tlen = Math.floor(norm_rand(meanTlen, dev, random) + 0.5);
-    if (end - tlen < start) { return next(arguments.callee) }
+    if (end - tlen < start) { return next(arguments.callee, true) }
 
     var pos = Math.floor(random() * (end - tlen - start) + 0.5) + start; // leftside position of template
 
-    if (fastas.hasN(rname, pos, tlen)) { return next(arguments.callee) }
+    if (fastas.hasN(rname, pos, tlen)) { return next(arguments.callee, true) }
 
     var template = fastas.fetch(rname, pos, tlen);
 
     var leftseq  = template + ad2compl;
     var rightseq = dna.complStrand(template, true) + ad1compl;
 
-    if (leftseq.length < readlen || rightseq.length < readlen) { return next(arguments.callee) }
+    if (leftseq.length < readlen || rightseq.length < readlen) { return next(arguments.callee, true) }
 
-    var frg_id = gfid(rname, start, end, depth,   pos, tlen,   para_id, parallel,    i, till); // fragment id
+    var frg_id = gfid(rname, start, end, depth, pos, tlen, para_id, parallel, i, till); // fragment id
 
     var leftread  = ms(leftseq,  readlen);
     var rightread = ms(rightseq, readlen);
@@ -138,8 +141,8 @@ Pairgen.prototype.runInOneRange = function(range, callback) {
 
 onmessage = function(msg) {
   const config = new PairgenConfig(msg.data);
-  config.callback = function(pgen) {
-    postMessage({});
+  config.callback = function(failcounts) {
+    postMessage(failcounts);
   };
 
   var pairgen = new Pairgen(config);

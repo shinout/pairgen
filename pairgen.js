@@ -107,14 +107,24 @@ function main() {
     var total_end_count = 0;
     Worker.sockdir = config.tmp_dir;
 
+    var totalFailCounts = {};
+    ranges.forEach(function(range, rangeId) {
+      totalFailCounts[rangeId] = [0, 0];
+    });
+
     for (var i=0; i<config.parallel; i++) {
       (function(i) {
         var worker = new Worker('pairgen.worker.js');
         
         // REDUCE
         worker.onmessage = function(msg) {
+          var failcounts = msg.data;
           worker.terminate(0.1);
           total_end_count++;
+          Object.keys(failcounts).forEach(function(rangeId) {
+            totalFailCounts[rangeId][0] += failcounts[rangeId][0];
+            totalFailCounts[rangeId][1] += failcounts[rangeId][1];
+          });
           if (total_end_count < config.parallel) return;
 
           var lefts  = [];
@@ -135,6 +145,19 @@ function main() {
             finflag++;
             if (finflag < 2) return;
             spawn('rm', ['-rf', config.tmp_dir]); // TODO recursive rmdir.
+
+            // report actual depth
+            Object.keys(totalFailCounts).forEach(function(rangeId) {
+              var range = ranges[rangeId];
+              var depth = range[3], newdepth = depth;
+              var numer = totalFailCounts[rangeId][0];
+              var denom = totalFailCounts[rangeId][1];
+              if (denom) {
+                var newdepth = Math.floor(depth * (denom - numer) / denom);
+              }
+              range.push(newdepth);
+              console.log(range.join('\t'));
+            });
           }
 
           var catleft  = spawn('cat', lefts);
