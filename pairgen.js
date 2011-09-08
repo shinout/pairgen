@@ -4,6 +4,7 @@ const Worker      = require('./lib/node-webworker');
 const PC          = require('./pairgen.config');
 const spawn       = require('child_process').spawn;
 const FASTAReader = require('./lib/FASTAReader/FASTAReader');
+const cl          = require('./lib/termcolor').define();
 
 function parseIntF(v) {
   var ret = parseInt(v);
@@ -157,6 +158,7 @@ function main() {
               if (denom) {
                 var newdepth = Math.floor(depth * (denom - numer) / denom * 10) / 10;
               }
+              if (newdepth < depth) newdepth = cl.red(newdepth); 
               range.push(newdepth);
               console.error('# ' + range.join('\t'));
             });
@@ -196,16 +198,16 @@ function showinfo(config) {
   const hasRanges = config.rangebed;
   console.error('#############################');
   console.error('# INPUT INFORMATION');
-  console.error('# FASTA FILE         : ' + config.path);
-  console.error('# NAME               : ' + config.name);
-  console.error('# REFERENCE NAME     : ' + ((hasRanges) ? '(ALL IN THE BED FILE)' :'(ALL IN THE FASTA FILE)'));
+  console.error('# FASTA FILE         : ' + cl.green(config.path));
+  console.error('# NAME               : ' + cl.green(config.name));
+  console.error('# REFERENCE NAME     : ' + ((hasRanges) ? cl.green('(ALL IN THE BED FILE)') :cl.blue('(ALL IN THE FASTA FILE)')));
   console.error('# READ LENGTH        : ' + config.readlen);
   console.error('# TEMPLATE LENGTH    : ' + config.tlen);
   console.error('# STDDEV OF DISTANCE : ' + config.dev);
-  console.error('# RANGES FILE        : ' + config.rangebed);
-  console.error('# SAVE DIR           : ' + config.save_dir);
+  console.error('# RANGES FILE        : ' + (config.rangebed ? cl.green(config.rangebed) : cl.red('not given')));
+  console.error('# SAVE DIR           : ' + cl.green(config.save_dir));
   console.error('# PARALLEL           : ' + config.parallel);
-  console.error('# DEPTH OF COVERAGE  : ' + ((hasRanges) ? '(DEPENDS ON EACH RANGE DATA)': config.depth));
+  console.error('# DEPTH OF COVERAGE  : ' + ((hasRanges) ? cl.blue('(DEPENDS ON EACH RANGE DATA)') : config.depth));
   console.error('# SUFFIX OF READS    : ' + "'" + config.pair_id[0] + "', '" + config.pair_id[1] + "'");
   console.error('# P5 ADAPTER         : ' + config.p5);
   console.error('# P7 ADAPTER         : ' + config.p7);

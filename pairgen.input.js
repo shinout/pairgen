@@ -47,7 +47,7 @@ function main() {
 
 function read(bedfile, freader) {
   j = new Junjo({
-    nodeCallback : true,
+    firstError: true,
     timeout      : 1
   });
 
@@ -61,7 +61,7 @@ function read(bedfile, freader) {
 
 
   j(path.exists).bind(fs, bedfile, j.callback)
-  .nodeCallback(false)
+  .firstError(false)
   .after();
 
   j(function(exists) {
