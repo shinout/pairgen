@@ -86,56 +86,69 @@ Pairgen.prototype.runInOneRange = function(range, rangeId, callback) {
   var i = 0, failcount = 0;
 
   const self = this;
-  (function() {
+  var writables = {L: true, R: true};
 
-    function next(fn, failed) {
+  var read = function(LR) {
+    if (LR) writables[LR] = true;
+    if (!writables.L || !writables.R) return;
+
+    if (i >= till) {
+      self.failcounts[rangeId] = [failcount, till];
+      callback();
+      return;
+    }
+    i++;
+
+    function next(failed) {
       if (failed) failcount++;
-      i++;
-      if (i == till) {
-        self.failcounts[rangeId] = [failcount, till];
-        callback();
-      }
-      else {
-        process.nextTick(fn);
-      }
+      read();
     }
 
     var tlen = Math.floor(norm_rand(meanTlen, dev, random) + 0.5);
-    if (end - tlen < start) { return next(arguments.callee, true) }
+    if (end - tlen < start) { return next(true) }
 
     var pos = Math.floor(random() * (end - tlen - start) + 0.5) + start; // leftside position of template
 
-    if (fastas.hasN(rname, pos, tlen)) { return next(arguments.callee, true) }
+    if (fastas.hasN(rname, pos, tlen)) { return next(true) }
 
     var template = fastas.fetch(rname, pos, tlen);
 
     var leftseq  = template + ad2compl;
     var rightseq = dna.complStrand(template, true) + ad1compl;
 
-    if (leftseq.length < readlen || rightseq.length < readlen) { return next(arguments.callee, true) }
+    if (leftseq.length < readlen || rightseq.length < readlen) { return next(true) }
 
     var frg_id = gfid(rname, start, end, depth, pos, tlen, para_id, parallel, i, till); // fragment id
 
     var leftread  = ms(leftseq,  readlen);
     var rightread = ms(rightseq, readlen);
 
-    self.left_file.write(
+    writables.L = self.left_file.write(
       '@' + frg_id  + left_id + '\n' +
       leftread + '\n' +
       '+\n' + 
       mq(qual, leftread) + '\n'
     );
 
-    self.right_file.write(
+    writables.R = self.right_file.write(
       '@' + frg_id  + right_id + '\n' +
       rightread + '\n' +
       '+\n' + 
       mq(qual, rightread) + '\n'
     );
 
-    next(arguments.callee);
+    next();
+  };
 
-  })();
+  self.left_file.on('drain', function() {
+    read('L');
+  });
+
+  self.right_file.on('drain', function() {
+    read('R');
+  });
+
+  read();
 };
 
 
