@@ -1,27 +1,30 @@
 const ArgParser   = require('argparser');
 const fs          = require('fs');
-const Worker      = require('./lib/node-webworker');
 const PC          = require('./pairgen.config');
 const spawn       = require('child_process').spawn;
-const FASTAReader = require('./lib/FASTAReader/FASTAReader');
-const cl          = require('./lib/termcolor').define();
+const fork        = require('child_process').fork;
+const FASTAReader = require('fastareader');
+const cl          = require('termcolor').define();
 
 function parseIntF(v) {
   var ret = parseInt(v);
   return (isNaN(ret)) ? 0 : ret;
 }
 
-function main() {
+function main(args) {
+  var node = args.shift();
+  var file = args.shift();
+
   const p = new ArgParser();
   p.defaults.valopts = undefined;
   p.addOptions([]).addValueOptions([
     'name','width','readlen', 'tlen',
     'dev','depth','save_dir','parallel','pair_id', 'exename',
     'p5', 'p7', 'adapter1', 'adapter2'
-  ]).parse();
+  ]).parse(args);
 
   function showUsage() {
-    const cmd = p.getOptions('exename') || (process.argv[0] + ' ' + require('path').basename(process.argv[1]));
+    const cmd = p.getOptions('exename') || (node + ' ' + require('path').basename(file));
     console.error('[usage]');
     console.error('\t' + cmd + ' <fasta file> [<ranges bed file>]');
     console.error('[options]');
@@ -77,7 +80,7 @@ function main() {
     var $j = read(config.rangebed, freader);
   }
   else {
-    var $j = new (require('./lib/Junjo/Junjo'))();
+    var $j = new (require('junjo'))();
     $j(function(){
       var ranges = [];
       Object.keys(freader.result).forEach(function(rname) {
@@ -105,7 +108,6 @@ function main() {
     showinfo(config);
 
     var total_end_count = 0;
-    Worker.sockdir = config.tmp_dir;
 
     var totalFailCounts = {};
     ranges.forEach(function(range, rangeId) {
@@ -114,12 +116,12 @@ function main() {
 
     for (var i=0; i<config.parallel; i++) {
       (function(i) {
-        var worker = new Worker('pairgen.worker.js');
+        var worker = fork(__dirname + '/pairgen.worker.js');
         
         // REDUCE
-        worker.onmessage = function(msg) {
-          var failcounts = msg.data;
-          worker.terminate(0.1);
+        worker.on("message", function(msg) {
+          var failcounts = msg;
+          worker.kill();
           total_end_count++;
           Object.keys(failcounts).forEach(function(rangeId) {
             totalFailCounts[rangeId][0] += failcounts[rangeId][0];
@@ -179,14 +181,14 @@ function main() {
 
           lwrite.on('end', write_end);
           rwrite.on('end', write_end);
-        }; // worker.onmessage
+        }); // worker.on("message")
 
         var conf4worker = config.toObject(true);
         conf4worker.is_worker = true;
         conf4worker.para_id = i;
 
         // MAP
-        worker.postMessage(conf4worker);
+        worker.send(conf4worker);
       })(i);
     }
   });
@@ -217,4 +219,6 @@ function showinfo(config) {
 }
 
 /* execution */
-if (process.argv[1] == __filename) { main(); }
+if (process.argv[1] == __filename) { main(process.argv); }
+
+module.exports = main;

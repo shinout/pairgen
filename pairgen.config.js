@@ -1,5 +1,5 @@
 const pth    = require('path');
-const Struct = require('./lib/Struct/Struct');
+const Struct = require('struct');
 
 PairgenConfig = (function() {
   const _ = new Struct('id');

@@ -1,7 +1,7 @@
 const fs          = require('fs');
 const path        = require('path');
-const Junjo       = require('./lib/Junjo/Junjo');
-const FASTAReader = require('./lib/FASTAReader/FASTAReader');
+const Junjo       = require('junjo');
+const FASTAReader = require('fastareader');
 const AP          = require('argparser');
 const SortedList  = require('./lib/SortedList');
 
@@ -46,30 +46,26 @@ function main() {
 }
 
 function read(bedfile, freader) {
-  j = new Junjo({
-    firstError: true,
-    timeout      : 1
-  });
+  var $j = new Junjo({ timeout : 1 });
 
-  j(function() {
+  $j(function() {
     if (!bedfile) 
       throw new Error('bed file is not given.');
 
     if (!(freader instanceof FASTAReader)) 
       throw new Error('FASTAReader is not given.');
-  });
-
-
-  j(path.exists).bind(fs, bedfile, j.callback)
-  .firstError(false)
-  .after();
-
-  j(function(exists) {
+  })
+  .next(function() {
+    path.exists(bedfile, this.cb);
+  })
+  .post(function(exists) {
     if (!exists) throw new Error(bedfile+ ' : no such file.');
+  })
+  .next(function() {
     fs.readFile(bedfile, this.callback);
-  }).after();
-
-  j(function(err, data) {
+  })
+  .eshift()
+  .post(function(data) {
     data = data.toString();
     var lines= data.split('\n');
 
@@ -119,15 +115,9 @@ function read(bedfile, freader) {
       // console.log(values.join('\t'));
     });
     this.out = ret;
-  }).after();
-
-  j.catchesAbove(function(e) {
-    j.err = e;
-    console.error(e.message);
-    j.terminate();
   });
 
-  return j;
+  return $j;
 }
 
 if (process.argv[1] == __filename) { main(); }

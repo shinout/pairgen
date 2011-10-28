@@ -1,10 +1,11 @@
 const PairgenConfig = require(__dirname + '/pairgen.config');
-const XORShift      = require(__dirname + '/lib/xorshift');
-const norm_rand     = require(__dirname + '/lib/normal_random');
-const dna           = require(__dirname + '/lib/dna');
-const FASTAReader   = require(__dirname + '/lib/FASTAReader/FASTAReader');
-const Junjo         = require(__dirname + '/lib/Junjo/Junjo');
-const fs            = require('fs');
+const FASTAReader   = require('fastareader');
+const norm_rand = require(__dirname + '/lib/normal_random');
+const XORShift  = require(__dirname + '/lib/xorshift');
+const Junjo     = require('junjo');
+const dna = require('dna');
+const fs  = require('fs');
+const cl  = require("termcolor").define();
 
 function Pairgen(config) {
 
@@ -40,11 +41,13 @@ function Pairgen(config) {
 }
 
 Pairgen.prototype.run = function() {
-  var $j = new Junjo({ timeout: 0 });
+  var $j = new Junjo({ timeout: 0, destroy: true, nosort: true });
   var self = this;
 
   self.config.ranges.forEach(function(range, k) {
-    $j(self.runInOneRange).bind(self, range, k, $j.callback).after();
+    $j(function() {
+      self.runInOneRange(range, k, this.cb);
+    }).after();
   });
 
   $j.on('end', function() {
@@ -152,22 +155,17 @@ Pairgen.prototype.runInOneRange = function(range, rangeId, callback) {
 };
 
 
-onmessage = function(msg) {
-  const config = new PairgenConfig(msg.data);
+process.on("message", function(msg) {
+  const config = new PairgenConfig(msg);
   config.callback = function(failcounts) {
-    postMessage(failcounts);
+    process.send(failcounts);
   };
 
   var pairgen = new Pairgen(config);
   pairgen.run();
-};
+});
 
-onerror = function(e) {
+process.on("unCaughtException", function(e) {
   console.log(e.stack);
-  this.close();
-};
-
-
-onclose = function() {
-};
-
+  process.exit();
+});
