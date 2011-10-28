@@ -1,5 +1,5 @@
 const pth    = require('path');
-const Struct = require('struct');
+const Struct = require('shinout.struct');
 
 PairgenConfig = (function() {
   const _ = new Struct('id');
