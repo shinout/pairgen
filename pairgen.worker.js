@@ -1,7 +1,7 @@
 const PairgenConfig = require(__dirname + '/pairgen.config');
 const FASTAReader   = require('fastareader');
-const norm_rand = require(__dirname + '/lib/normal_random');
-const XORShift  = require(__dirname + '/lib/xorshift');
+const norm_rand = require('random-tools').normalRandom;
+const XORShift  = require('random-tools').XORShift;
 const Junjo     = require('junjo');
 const dna = require('dna');
 const fs  = require('fs');
