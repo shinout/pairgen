@@ -11,6 +11,26 @@ function parseIntF(v) {
   return (isNaN(ret)) ? 0 : ret;
 }
 
+
+function showUsage() {
+  console.error('[usage]');
+  console.error('\tpairgen <fasta file> [<ranges bed file>]');
+  console.error('[options]');
+  console.error('\t' + '--name\tname of the sequence. default = basename(path)');
+  console.error('\t' + '--readlen\tlength of the read. default = ' + PC.getDefault('readlen'));
+  console.error('\t' + '--tlen\tlength of the template. default = ' + PC.getDefault('tlen'));
+  console.error('\t' + '--dev\tstandard deviation of the total fragment length. default = ' + PC.getDefault('dev'));
+  console.error('\t' + '--depth\tphysical read depth. default = ' + PC.getDefault('depth'));
+  console.error('\t' + '--save_dir\tdirectory to save result. default = ' + PC.getDefault('save_dir'));
+  console.error('\t' + '--pair_id <id_type>\tpair id type, put pair information explicitly. id_type is one of A, 1, F, F3.');
+  console.error('\t' + '--parallel\tthe number of processes to run. default: ' + PC.getDefault('parallel'));
+  console.error('\t' + '--p5\tIllumina P5 adapter. default: ' + PC.getDefault('p5'));
+  console.error('\t' + '--p7\tIllumina P7 adapter. default: ' + PC.getDefault('p7'));
+  console.error('\t' + '--adapter1\tIllumina Sequence Primer#1. default: ' + PC.getDefault('adapter1'));
+  console.error('\t' + '--adapter2\tIllumina Sequence Primer#2. default: ' + PC.getDefault('adapter2'));
+}
+
+
 function main(args) {
   var node = args.shift();
   var file = args.shift();
@@ -22,25 +42,6 @@ function main(args) {
     'dev','depth','save_dir','parallel','pair_id', 'exename',
     'p5', 'p7', 'adapter1', 'adapter2'
   ]).parse(args);
-
-  function showUsage() {
-    const cmd = p.getOptions('exename') || (node + ' ' + require('path').basename(file));
-    console.error('[usage]');
-    console.error('\t' + cmd + ' <fasta file> [<ranges bed file>]');
-    console.error('[options]');
-    console.error('\t' + '--name\tname of the sequence. default = basename(path)');
-    console.error('\t' + '--readlen\tlength of the read. default = ' + PC.getDefault('readlen'));
-    console.error('\t' + '--tlen\tlength of the template. default = ' + PC.getDefault('tlen'));
-    console.error('\t' + '--dev\tstandard deviation of the total fragment length. default = ' + PC.getDefault('dev'));
-    console.error('\t' + '--depth\tphysical read depth. default = ' + PC.getDefault('depth'));
-    console.error('\t' + '--save_dir\tdirectory to save result. default = ' + PC.getDefault('save_dir'));
-    console.error('\t' + '--pair_id <id_type>\tpair id type, put pair information explicitly. id_type is one of A, 1, F, F3.');
-    console.error('\t' + '--parallel\tthe number of processes to run. default: ' + PC.getDefault('parallel'));
-    console.error('\t' + '--p5\tIllumina P5 adapter. default: ' + PC.getDefault('p5'));
-    console.error('\t' + '--p7\tIllumina P7 adapter. default: ' + PC.getDefault('p7'));
-    console.error('\t' + '--adapter1\tIllumina Sequence Primer#1. default: ' + PC.getDefault('adapter1'));
-    console.error('\t' + '--adapter2\tIllumina Sequence Primer#2. default: ' + PC.getDefault('adapter2'));
-  }
 
   if (!p.getArgs(0)) {
     showUsage();
