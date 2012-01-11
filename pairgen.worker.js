@@ -37,6 +37,9 @@ function Pairgen(config) {
     bufferSize: 40960, encoding: 'utf-8', flags: 'w'
   });
 
+  this.left_file.setMaxListeners(0);
+  this.right_file.setMaxListeners(0);
+
   Object.seal(this);
 }
 
