@@ -22,7 +22,8 @@ function showUsage() {
   console.error('\t' + '--dev\tstandard deviation of the total fragment length. default = ' + PC.getDefault('dev'));
   console.error('\t' + '--depth\tphysical read depth. default = ' + PC.getDefault('depth'));
   console.error('\t' + '--save_dir\tdirectory to save result. default = ' + PC.getDefault('save_dir'));
-  console.error('\t' + '--pair_id <id_type>\tpair id type, put pair information explicitly. id_type is one of A, 1, F, F3.');
+  console.error('\t' + '--pair_id <id_type>\tpair id type, put pair information explicitly. id_type is one of A, _, /, F, F3.');
+  console.error('\t' + '--index_id <integer>\tsequence index. default 0 (used in illumina pooled sequence techunique)');
   console.error('\t' + '--parallel\tthe number of processes to run. default: ' + PC.getDefault('parallel'));
   console.error('\t' + '--p5\tIllumina P5 adapter. default: ' + PC.getDefault('p5'));
   console.error('\t' + '--p7\tIllumina P7 adapter. default: ' + PC.getDefault('p7'));
@@ -39,7 +40,7 @@ function main(args) {
   p.defaults.valopts = undefined;
   p.addOptions([]).addValueOptions([
     'name','width','readlen', 'tlen',
-    'dev','depth','save_dir','parallel','pair_id', 'exename',
+    'dev','depth','save_dir','parallel','pair_id', 'exename', 'index_id',
     'p5', 'p7', 'adapter1', 'adapter2'
   ]).parse(args);
 
@@ -64,6 +65,7 @@ function main(args) {
       save_dir : p.getOptions('save_dir'),
       parallel : p.getOptions('parallel'),
       pair_id  : p.getOptions('pair_id'),
+      index_id : p.getOptions('index_id'),
       p5       : p.getOptions('p5'),
       p7       : p.getOptions('p7'),
       adapter1 : p.getOptions('adapter1'),
@@ -211,6 +213,7 @@ function showinfo(config) {
   console.error('# SAVE DIR           : ' + cl.green(config.save_dir));
   console.error('# PARALLEL           : ' + config.parallel);
   console.error('# DEPTH OF COVERAGE  : ' + ((hasRanges) ? cl.blue('(DEPENDS ON EACH RANGE DATA)') : config.depth));
+  console.error('# INDEX ID           : ' + config.index_id);
   console.error('# SUFFIX OF READS    : ' + "'" + config.pair_id[0] + "', '" + config.pair_id[1] + "'");
   console.error('# P5 ADAPTER         : ' + config.p5);
   console.error('# P7 ADAPTER         : ' + config.p7);

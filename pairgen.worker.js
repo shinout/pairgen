@@ -77,6 +77,7 @@ Pairgen.prototype.runInOneRange = function(range, rangeId, callback) {
   const ms       = config.modify_seq;
   const mq       = config.modify_qual;
   const gfid     = config.get_fragment_id;
+  const index_id = config.index_id;
   const left_id  = config.pair_id[0];
   const right_id = config.pair_id[1];
   const baselen  = end - start + 1;
@@ -130,14 +131,14 @@ Pairgen.prototype.runInOneRange = function(range, rangeId, callback) {
     var rightread = ms(rightseq, readlen);
 
     writables.L = self.left_file.write(
-      '@' + frg_id  + left_id + '\n' +
+      '@' + frg_id  + '#' + index_id + left_id + '\n' +
       leftread + '\n' +
       '+\n' + 
       mq(qual, leftread) + '\n'
     );
 
     writables.R = self.right_file.write(
-      '@' + frg_id  + right_id + '\n' +
+      '@' + frg_id  + '#' + index_id + right_id + '\n' +
       rightread + '\n' +
       '+\n' + 
       mq(qual, rightread) + '\n'

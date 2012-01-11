@@ -111,6 +111,13 @@ PairgenConfig = (function() {
       immutable: true
     },
 
+    index_id : {
+      modifier: M.integer.bind({min: 0}).quiet,
+      _default: 0,
+      enumerable: true,
+      immutable: true
+    },
+
     pair_id : {
       modifier: function(v) {
         /* pair identifier */
@@ -130,12 +137,17 @@ PairgenConfig = (function() {
             left_id  = '_A';
             right_id = '_B';
             break;
+          case '_':
           case '1':
           case '2':
           case  1 :
           case  2 :
             left_id  = '_1';
             right_id = '_2';
+            break;
+        case '/':
+            left_id  = '/1';
+            right_id = '/2';
             break;
           case 'F':
           case 'R':
