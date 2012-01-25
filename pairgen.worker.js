@@ -2,6 +2,7 @@ const PairgenConfig = require(__dirname + '/pairgen.config');
 const FASTAReader   = require('fastareader');
 const norm_rand = require('random-tools').normalRandom;
 const XORShift  = require('random-tools').XORShift;
+const onoff     = require('random-tools').onoff;
 const Junjo     = require('junjo');
 const dna = require('dna');
 const fs  = require('fs');
@@ -118,14 +119,16 @@ Pairgen.prototype.runInOneRange = function(range, rangeId, callback) {
 
     if (fastas.hasN(rname, pos, tlen)) { return next(true) }
 
-    var template = fastas.fetch(rname, pos, tlen);
+    var rev = onoff();
+
+    var template = fastas.fetch(rname, pos, tlen, rev);
 
     var leftseq  = template + ad2compl;
     var rightseq = dna.complStrand(template, true) + ad1compl;
 
     if (leftseq.length < readlen || rightseq.length < readlen) { return next(true) }
 
-    var frg_id = gfid(rname, start, end, depth, pos, tlen, para_id, parallel, i, till); // fragment id
+    var frg_id = gfid(rname, start, end, depth, pos, tlen, rev, para_id, parallel, i, till); // fragment id
 
     var leftread  = ms(leftseq,  readlen);
     var rightread = ms(rightseq, readlen);

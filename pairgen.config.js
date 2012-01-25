@@ -202,12 +202,14 @@ PairgenConfig = (function() {
 
     get_fragment_id : {
       modifier: M.func,
-      _default: function(rname, start, end, depth, pos, tlen,para_id, parallel,i, till) {
+      _default: function(rname, start, end, depth, pos, tlen, rev, para_id, parallel,i, till) {
+        var strand = (rev) ? "-" : "+";
         return [
           'PAIRGEN',
           rname + ':' + start + '-' + end + ':' + depth,
           'Po' + pos + '-' + (pos + tlen -1) + ':' + tlen,
           'Pa' + (para_id + 1) + ':' + parallel,
+          'St' + strand,
           'It' + i + ':' + till
         ].join('_');
       },

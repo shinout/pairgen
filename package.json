@@ -1,6 +1,6 @@
 {
   "name": "pairgen"
-, "version": "0.1.3"
+, "version": "0.1.4"
 , "engines": { "node" : ">=0.5.9" }  
 , "description": "paired-end NGS simulator."
 , "tags": ["DNA", "paired-end", "next-gen", "sequencer", "sequence", "bioinformatics"]
@@ -18,11 +18,11 @@
 , "main": "./pairgen.js"
 , "bin": "bin/pairgen"
 , "dependencies": 
-  { "junjo": ">=0.2"
-  , "termcolor" : "*"
-  , "fastareader" : "0.1.x"
+  { "junjo": ">=0.2.8"
+  , "termcolor" : ">=0.1.3"
+  , "fastareader" : ">=0.1.3"
   , "argparser" : ">=0.0.9"
-  , "random-tools" : ">=0.0.1"
+  , "random-tools" : ">=0.0.3"
   , "shinout.struct" : "0.1.x"
   }
 }
