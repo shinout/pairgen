@@ -243,6 +243,13 @@ PairgenConfig = (function() {
       _default   : 'CAAGCAGAAGACGGCATACGAGATCGGTCTCGGCATTCCTGCTGAACCGCTCTTCCGATCT', // 5' -> 3'
       enumerable : true,
       immutable  : true
+    },
+
+    allowDup : {
+      modifier   : M.boolean,
+      _default   : false,
+      enumerable : false,
+      immutable  : true
     }
   });
   return PairgenConfig;

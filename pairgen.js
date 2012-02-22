@@ -37,12 +37,12 @@ function main(args) {
   var file = args.shift();
 
   const p = new ArgParser();
-  p.defaults.valopts = undefined;
-  p.addOptions([]).addValueOptions([
+  p.emptyValue = undefined;
+  p.addOptions('d').addValueOptions(
     'name','width','readlen', 'tlen',
     'dev','depth','save_dir','parallel','pair_id', 'exename', 'index_id',
     'p5', 'p7', 'adapter1', 'adapter2'
-  ]).parse(args);
+  ).parse(args);
 
   if (!p.getArgs(0)) {
     showUsage();
@@ -69,7 +69,8 @@ function main(args) {
       p5       : p.getOptions('p5'),
       p7       : p.getOptions('p7'),
       adapter1 : p.getOptions('adapter1'),
-      adapter2 : p.getOptions('adapter2')
+      adapter2 : p.getOptions('adapter2'),
+      allowDup : p.getOptions('d')
     });
   }
   catch (e) {
@@ -80,7 +81,7 @@ function main(args) {
   const freader = new FASTAReader(fastafile);
   if (config.rangebed) {
     const read = require('./pairgen.input');
-    var $j = read(config.rangebed, freader);
+    var $j = read(config.rangebed, freader, config);
   }
   else {
     var $j = new (require('junjo'))();
@@ -219,6 +220,7 @@ function showinfo(config) {
   console.error('# P7 ADAPTER         : ' + config.p7);
   console.error('# PRIMER SEQUENCE 1  : ' + config.adapter1);
   console.error('# PRIMER SEQUENCE 2  : ' + config.adapter2);
+  console.error('# ALLOW DUPLICATE    : ' + config.allowDup);
   console.error('#############################');
 }
 

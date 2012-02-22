@@ -3,10 +3,10 @@ const path        = require('path');
 const Junjo       = require('junjo');
 const FASTAReader = require('fastareader');
 const AP          = require('argparser');
-const SortedList  = require('./lib/SortedList');
+const SortedList  = require('sortedlist');
 
 function main() {
-  const p = new AP().parse();
+  const p = AP.create().parse();
   var bedfile = p.getArgs(0);
   var reference = p.getArgs(1);
 
@@ -45,8 +45,9 @@ function main() {
   }
 }
 
-function read(bedfile, freader) {
-  var $j = new Junjo({ timeout : 1 });
+function read(bedfile, freader, config) {
+
+  var $j = new Junjo({ noTimeout : true });
 
   $j(function() {
     if (!bedfile) 
@@ -92,25 +93,29 @@ function read(bedfile, freader) {
       if (values[3] < 0) throw new Error("depth must be zero or positive. in line " + (k+1));
 
       if (!lists[values[0]]) {
-        lists[values[0]] = new SortedList(null, {
-          filter: function(val, pos) {
-            return (this.arr[pos]   == null || (this.arr[pos]   != null && this.arr[pos][2] < val[1])) 
-              &&   (this.arr[pos+1] == null || (this.arr[pos+1] != null && val[2] < this.arr[pos+1][1]));
-          },
+        var options = {
           compare: function(a, b) {
             if (a == null) return -1;
             if (b == null) return  1;
             var c = a[1] - b[1];
             return (c > 0) ? 1 : (c == 0)  ? 0 : -1;
           }
-        });
+        };
+
+
+        if (!config.allowDup) {
+          options.filter = function(val, pos) {
+            return (this.arr[pos]   == null || (this.arr[pos]   != null && this.arr[pos][2] < val[1])) 
+              &&   (this.arr[pos+1] == null || (this.arr[pos+1] != null && val[2] < this.arr[pos+1][1]));
+          };
+        }
+        lists[values[0]] = new SortedList(null, options);
       }
       var list = lists[values[0]];
 
       var bool = list.insert(values);
       if (!bool) throw new Error("duplication of the region. in line " + (k+1));
 
-      j.emit('bed', values); // future API
       ret.push(values);
       // console.log(values.join('\t'));
     });
