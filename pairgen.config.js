@@ -253,8 +253,8 @@ PairgenConfig = (function() {
     },
 
     error : {
-      modifier   : M.number,
-      _default   : 0.2,
+      modifier   : M.number.quiet,
+      _default   : 0,
       enumerable : false,
       immutable  : true
     }

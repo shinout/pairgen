@@ -12,7 +12,8 @@ function parseIntF(v) {
 }
 
 
-function showUsage() {
+function showUsage(e) {
+  if (e) console.error(e.message);
   console.error('[usage]');
   console.error('\tpairgen <fasta file> [<ranges bed file>]');
   console.error('[options]');
@@ -37,16 +38,15 @@ function main(args) {
   var node = args.shift();
   var file = args.shift();
 
-  const p = require("argparser").create();
+  var p = require("argparser").create();
   p.emptyValue = undefined;
-  p.nonvals('d').vals(
+  p = p.nonvals('d').vals(
     'name','width','readlen', 'tlen',
     'dev','depth','save_dir','parallel','pair_id', 'exename', 'index_id',
     'p5', 'p7', 'adapter1', 'adapter2', 'error'
-  ).files(0).parse(args);
+  ).files(0).err(showUsage).parse(args);
 
-  if (!p.arg(0)) {
-    showUsage();
+  if (!p) {
     return false;
   }
 

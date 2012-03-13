@@ -115,8 +115,6 @@ Pairgen.prototype.runInOneRange = function(range, rangeId, callback) {
     var mq = config.modify_qual;
   }
 
-  console.log(ms.toString())
-
   var i = 0, failcount = 0;
 
   const self = this;
