@@ -2,6 +2,7 @@ const PairgenConfig = require(__dirname + '/pairgen.config');
 const FASTAReader   = require('fastareader');
 const norm_rand = require('random-tools').normalRandom;
 const XORShift  = require('random-tools').XORShift;
+const randomInt = require('random-tools').randomInt;
 const onoff     = require('random-tools').onoff;
 const Junjo     = require('junjo');
 const dna = require('dna');
@@ -75,8 +76,6 @@ Pairgen.prototype.runInOneRange = function(range, rangeId, callback) {
   const config   = this.config;
   const meanTlen = config.tlen;
   const dev      = config.dev;
-  const ms       = config.modify_seq;
-  const mq       = config.modify_qual;
   const gfid     = config.get_fragment_id;
   const index_id = config.index_id;
   const left_id  = config.pair_id[0];
@@ -90,6 +89,33 @@ Pairgen.prototype.runInOneRange = function(range, rangeId, callback) {
   const parallel = config.parallel;
 
   const till = Math.floor(baselen * depth / (2 * config.readlen) / config.parallel + 0.5);
+
+  // insert error 
+  if (config.error) {
+    var alpha = 0.0001 * config.error;
+    var errorCurve = function(pos) {
+      return alpha * pos * pos;
+    }
+    var bases = ["C", "A", "T", "G"];
+    var ms = function(seq, len, id) {
+      return seq.slice(0, len).split("").map(function(base, pos) {
+        if (errorCurve(pos) > Math.random()) {
+          var newbase = bases[randomInt(3)];
+          console.log(id, pos, base, "=>", newbase);
+          return newbase;
+        }
+        else return base;
+      }).join("");
+    };
+
+    var mq = config.modify_qual;
+  }
+  else {
+    var ms = config.modify_seq;
+    var mq = config.modify_qual;
+  }
+
+  console.log(ms.toString())
 
   var i = 0, failcount = 0;
 
@@ -130,8 +156,8 @@ Pairgen.prototype.runInOneRange = function(range, rangeId, callback) {
 
     var frg_id = gfid(rname, start, end, depth, pos, tlen, rev, para_id, parallel, i, till); // fragment id
 
-    var leftread  = ms(leftseq,  readlen);
-    var rightread = ms(rightseq, readlen);
+    var leftread  = ms(leftseq,  readlen, frg_id + "+");
+    var rightread = ms(rightseq, readlen, frg_id + "-");
 
     writables.L = self.left_file.write(
       '@' + frg_id  + '#' + index_id + left_id + '\n' +

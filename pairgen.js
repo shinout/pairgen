@@ -29,6 +29,7 @@ function showUsage() {
   console.error('\t' + '--p7\tIllumina P7 adapter. default: ' + PC.getDefault('p7'));
   console.error('\t' + '--adapter1\tIllumina Sequence Primer#1. default: ' + PC.getDefault('adapter1'));
   console.error('\t' + '--adapter2\tIllumina Sequence Primer#2. default: ' + PC.getDefault('adapter2'));
+  console.error('\t' + '--error\tadd read errors');
 }
 
 
@@ -36,15 +37,15 @@ function main(args) {
   var node = args.shift();
   var file = args.shift();
 
-  const p = new ArgParser();
+  const p = require("argparser").create();
   p.emptyValue = undefined;
-  p.addOptions('d').addValueOptions(
+  p.nonvals('d').vals(
     'name','width','readlen', 'tlen',
     'dev','depth','save_dir','parallel','pair_id', 'exename', 'index_id',
-    'p5', 'p7', 'adapter1', 'adapter2'
-  ).parse(args);
+    'p5', 'p7', 'adapter1', 'adapter2', 'error'
+  ).files(0).parse(args);
 
-  if (!p.getArgs(0)) {
+  if (!p.arg(0)) {
     showUsage();
     return false;
   }
@@ -54,24 +55,28 @@ function main(args) {
     if (p.getOptions('width')) {
       throw new Error('"width" is the deprecated option. Use tlen, which stands for template length ( width + 2 * readlen).');
     }
-    const config = new PC({
-      path     : p.getArgs(0),
-      rangebed : p.getArgs(1),
-      name     : p.getOptions('name'),
-      tlen     : p.getOptions('tlen'),
-      readlen  : p.getOptions('readlen'),
-      dev      : p.getOptions('dev'),
-      depth    : p.getOptions('depth'),
-      save_dir : p.getOptions('save_dir'),
-      parallel : p.getOptions('parallel'),
-      pair_id  : p.getOptions('pair_id'),
-      index_id : p.getOptions('index_id'),
-      p5       : p.getOptions('p5'),
-      p7       : p.getOptions('p7'),
-      adapter1 : p.getOptions('adapter1'),
-      adapter2 : p.getOptions('adapter2'),
-      allowDup : p.getOptions('d')
-    });
+    var pairgen_config = {
+      path     : p.arg(0),
+      rangebed : p.arg(1),
+      name     : p.opt('name'),
+      tlen     : p.opt('tlen'),
+      readlen  : p.opt('readlen'),
+      dev      : p.opt('dev'),
+      depth    : p.opt('depth'),
+      save_dir : p.opt('save_dir'),
+      parallel : p.opt('parallel'),
+      pair_id  : p.opt('pair_id'),
+      index_id : p.opt('index_id'),
+      p5       : p.opt('p5'),
+      p7       : p.opt('p7'),
+      adapter1 : p.opt('adapter1'),
+      adapter2 : p.opt('adapter2'),
+      allowDup : p.opt('d'),
+      error    : p.opt("error")
+    };
+
+
+    var config = new PC(pairgen_config);
   }
   catch (e) {
     console.error(e.stack);
@@ -221,6 +226,7 @@ function showinfo(config) {
   console.error('# PRIMER SEQUENCE 1  : ' + config.adapter1);
   console.error('# PRIMER SEQUENCE 2  : ' + config.adapter2);
   console.error('# ALLOW DUPLICATE    : ' + config.allowDup);
+  console.error('# READ ERROR         : ' + config.error);
   console.error('#############################');
 }
 

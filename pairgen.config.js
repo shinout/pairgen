@@ -250,6 +250,13 @@ PairgenConfig = (function() {
       _default   : false,
       enumerable : false,
       immutable  : true
+    },
+
+    error : {
+      modifier   : M.number,
+      _default   : 0.2,
+      enumerable : false,
+      immutable  : true
     }
   });
   return PairgenConfig;

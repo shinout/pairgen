@@ -1,6 +1,6 @@
 {
   "name": "pairgen"
-, "version": "0.1.4"
+, "version": "0.1.5"
 , "engines": { "node" : ">=0.5.9" }  
 , "description": "paired-end NGS simulator."
 , "tags": ["DNA", "paired-end", "next-gen", "sequencer", "sequence", "bioinformatics"]
